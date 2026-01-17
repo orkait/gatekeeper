@@ -1,0 +1,62 @@
+export interface Bindings {
+    DB: D1Database;
+    ENVIRONMENT: "production" | "development" | "staging" | "test";
+    JWT_SECRET: string;
+    JWT_EXPIRES_IN?: string;
+    REFRESH_TOKEN_EXPIRES_IN?: string;
+    GOOGLE_CLIENT_ID?: string;
+    INTERNAL_SECRET: string;
+    WEBHOOK_TIMEOUT_MS?: string;
+    WEBHOOK_MAX_RETRIES?: string;
+    ALLOWED_ORIGINS?: string;
+    STORAGE_ADAPTER?: "memory" | "d1" | "auto";
+}
+
+export interface AppEnv {
+    Bindings: Bindings;
+    Variables: Record<string, unknown>;
+}
+
+export function getEnv(bindings: Bindings) {
+    const environment = bindings.ENVIRONMENT || "production";
+
+    return {
+        db: bindings.DB,
+        environment,
+        jwtSecret: bindings.JWT_SECRET,
+        jwtExpiresIn: parseInt(bindings.JWT_EXPIRES_IN || "900", 10),
+        refreshTokenExpiresIn: parseInt(bindings.REFRESH_TOKEN_EXPIRES_IN || "604800", 10),
+        googleClientId: bindings.GOOGLE_CLIENT_ID,
+        internalSecret: bindings.INTERNAL_SECRET,
+        webhookTimeoutMs: parseInt(bindings.WEBHOOK_TIMEOUT_MS || "5000", 10),
+        webhookMaxRetries: parseInt(bindings.WEBHOOK_MAX_RETRIES || "3", 10),
+        allowedOrigins: bindings.ALLOWED_ORIGINS?.split(",").map(o => o.trim()) || ["*"],
+        storageAdapter: bindings.STORAGE_ADAPTER || "auto",
+        isProduction: environment === "production",
+        isDevelopment: environment === "development",
+        isTest: environment === "test",
+    } as const;
+}
+
+export type EnvConfig = ReturnType<typeof getEnv>;
+
+export function validateEnv(bindings: Partial<Bindings>): bindings is Bindings {
+    const errors: string[] = [];
+
+    if (!bindings.DB && bindings.ENVIRONMENT !== "test") {
+        errors.push("Missing required binding: DB");
+    }
+    if (!bindings.JWT_SECRET) {
+        errors.push("Missing required secret: JWT_SECRET");
+    }
+    if (!bindings.INTERNAL_SECRET) {
+        errors.push("Missing required secret: INTERNAL_SECRET");
+    }
+
+    if (errors.length > 0) {
+        console.error("Environment validation failed:", errors.join(", "));
+        return false;
+    }
+
+    return true;
+}

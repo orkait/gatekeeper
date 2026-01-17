@@ -1,0 +1,26 @@
+# Orkait Auth & Subscription Service
+# Cloudflare Workers Configuration
+
+name = "orkait-auth"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "orkait_auth"
+database_id = "00000000-0000-0000-0000-000000000000"  # Replace after: wrangler d1 create orkait_auth
+
+# Production Environment
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets (configure via: wrangler secret put <NAME>)
+# JWT_SECRET           - Secret for signing JWT tokens
+# INTERNAL_SECRET      - Secret for internal API authentication
+# GOOGLE_CLIENT_ID     - Google OAuth client ID (optional)
+
+# Development Environment
+[env.dev]
+vars = { ENVIRONMENT = "development" }
