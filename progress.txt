@@ -370,3 +370,19 @@
 Total: 32 user stories implemented
 Tests: 23 passing (16 unit, 7 integration)
 TypeScript: Compiles without errors
+
+[2026-01-25T03:35:00+05:30] SCHEMA-001 verified
+- Migration file 0002_core_tables.sql exists in migrations/ folder
+- tenants table: id, name, global_quota_limit, created_at, updated_at ✓
+- tenant_users table: tenant_id, user_id, role, created_at ✓
+- sessions table updated with service field and UNIQUE constraint ✓
+- All required indexes created ✓
+- SQL syntax validated
+
+[2026-01-25T03:35:00+05:30] SCHEMA-002 verified
+- Migration file 0003_api_keys_usage.sql exists
+- api_keys table: all required columns (scopes, quota_limit, quota_period, created_by, last_used_at, expires_at, revoked_at) ✓
+- usage_events table: tenant_id, api_key_id, user_id, service, action, quantity, period, timestamp, idempotency_key ✓
+- Proper indexes on all frequently queried columns ✓
+- UNIQUE constraint on idempotency_key ✓
+- SQL syntax validated

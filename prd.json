@@ -43,7 +43,8 @@
       "refactor": false,
       "removeDeadCode": false,
       "removeComments": false,
-      "verifyWorking": false
+      "verifyWorking": false,
+      "verified": true
     },
     {
       "id": "SCHEMA-002",
@@ -61,7 +62,8 @@
       "refactor": false,
       "removeDeadCode": false,
       "removeComments": false,
-      "verifyWorking": false
+      "verifyWorking": false,
+      "verified": true
     },
     {
       "id": "SCHEMA-003",
@@ -436,7 +438,8 @@
       "refactor": false,
       "removeDeadCode": false,
       "removeComments": false,
-      "verifyWorking": false
+      "verifyWorking": false,
+      "verified": true
     },
     {
       "id": "WEBHOOK-001",
@@ -587,7 +590,8 @@
       "refactor": false,
       "removeDeadCode": false,
       "removeComments": false,
-      "verifyWorking": false
+      "verifyWorking": false,
+      "verified": true
     },
     {
       "id": "TEST-002",
