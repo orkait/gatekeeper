@@ -397,3 +397,15 @@ TypeScript: Compiles without errors
   - tenant_users table with role constraints
   - sessions table with service field and per-service unique constraint
   - All foreign keys and indexes properly defined
+
+[2026-01-25T03:50:00+05:30] SCHEMA-002 verified (Phase 2 complete)
+- removeDeadCode: No unused code found in migration file ✓
+- removeComments: Comments are descriptive and add value (explains DROP TABLE and production note) ✓
+- refactor: SQL migration is well-structured and optimized, no refactoring needed ✓
+- qualityCheck: TypeScript compiles without errors, all 23 tests passing ✓
+- verifyWorking: Migration file structure verified, all tables and indexes present ✓
+  - api_keys table: all required columns present (scopes, quota_limit, quota_period, created_by, last_used_at, expires_at, revoked_at)
+  - usage_events table: all required columns present (tenant_id, api_key_id, user_id, service, action, quantity, period, timestamp, idempotency_key)
+  - UNIQUE constraint on idempotency_key for idempotent operations
+  - Comprehensive indexes on tenant_id, api_key_id, user_id, service, period, timestamp
+  - Compound index on (tenant_id, period) for efficient usage queries
