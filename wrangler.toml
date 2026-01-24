@@ -12,6 +12,11 @@ binding = "DB"
 database_name = "orkait_auth"
 database_id = "00000000-0000-0000-0000-000000000000"  # Replace after: wrangler d1 create orkait_auth
 
+# KV Namespace for auth decision caching (fallback on D1 outage)
+[[kv_namespaces]]
+binding = "AUTH_CACHE"
+id = "00000000000000000000000000000000"  # Replace after: wrangler kv:namespace create AUTH_CACHE
+
 # Production Environment
 [vars]
 ENVIRONMENT = "production"

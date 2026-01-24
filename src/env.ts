@@ -1,5 +1,6 @@
 export interface Bindings {
     DB: D1Database;
+    AUTH_CACHE: KVNamespace;
     ENVIRONMENT: "production" | "development" | "staging" | "test";
     JWT_SECRET: string;
     JWT_EXPIRES_IN?: string;
@@ -22,6 +23,7 @@ export function getEnv(bindings: Bindings) {
 
     return {
         db: bindings.DB,
+        authCache: bindings.AUTH_CACHE,
         environment,
         jwtSecret: bindings.JWT_SECRET,
         jwtExpiresIn: parseInt(bindings.JWT_EXPIRES_IN || "900", 10),
