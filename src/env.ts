@@ -11,6 +11,10 @@ export interface Bindings {
     WEBHOOK_MAX_RETRIES?: string;
     ALLOWED_ORIGINS?: string;
     STORAGE_ADAPTER?: "memory" | "d1" | "auto";
+    // RSA keys for asymmetric JWT signing (JWKS)
+    RSA_PRIVATE_KEY?: string;
+    RSA_PUBLIC_KEY?: string;
+    RSA_KEY_ID?: string;
 }
 
 export interface AppEnv {
@@ -34,6 +38,9 @@ export function getEnv(bindings: Bindings) {
         webhookMaxRetries: parseInt(bindings.WEBHOOK_MAX_RETRIES || "3", 10),
         allowedOrigins: bindings.ALLOWED_ORIGINS?.split(",").map(o => o.trim()) || ["*"],
         storageAdapter: bindings.STORAGE_ADAPTER || "auto",
+        rsaPrivateKey: bindings.RSA_PRIVATE_KEY,
+        rsaPublicKey: bindings.RSA_PUBLIC_KEY,
+        rsaKeyId: bindings.RSA_KEY_ID,
         isProduction: environment === "production",
         isDevelopment: environment === "development",
         isTest: environment === "test",

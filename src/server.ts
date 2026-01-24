@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "./env";
 import { getEnv } from "./env";
 import { createAPIRouter } from "./routes";
+import jwksRoutes from "./routes/jwks.routes";
 import { errorHandler } from "./middleware/error-handler";
 import { createCorsMiddleware } from "./middleware/cors";
 import { requestLogger } from "./middleware/logger";
@@ -30,6 +31,9 @@ function createApp() {
             internal: "/api/internal",
         },
     }));
+
+    // Mount JWKS endpoint for public key distribution
+    app.route("/.well-known", jwksRoutes);
 
     // Mount API routes
     app.route("/api", createAPIRouter());
