@@ -28,7 +28,7 @@ export interface D1Meta {
 }
 
 /** Row type constraint - must be a record/object */
-type Row = Record<string, unknown>;
+export type Row = Record<string, unknown>;
 
 /**
  * Auth-safe D1 database wrapper that enforces consistency on all reads.
