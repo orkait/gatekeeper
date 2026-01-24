@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import authRoutes from "./auth.routes";
+import apikeyRoutes from "./apikey.routes";
 
 export function createAPIRouter() {
     const api = new Hono();
@@ -12,6 +13,7 @@ export function createAPIRouter() {
     }));
 
     api.route("/auth", authRoutes);
+    api.route("/auth/apikey", apikeyRoutes);
 
     return api;
 }
