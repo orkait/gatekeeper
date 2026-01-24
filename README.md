@@ -126,6 +126,7 @@ GET /api/health
 ```
 
 Response:
+
 ```json
 {
   "status": "ok",
@@ -149,6 +150,7 @@ Content-Type: application/json
 ```
 
 Response (201):
+
 ```json
 {
   "success": true,
@@ -219,6 +221,7 @@ Content-Type: application/json
 ```
 
 Response (200):
+
 ```json
 {
   "success": true,
@@ -234,6 +237,7 @@ Authorization: Bearer <accessToken>
 ```
 
 Response (200):
+
 ```json
 {
   "success": true,

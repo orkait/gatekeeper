@@ -1,0 +1,448 @@
+{
+  "name": "orka-auth-control-plane",
+  "description": "A serverless control plane that centralizes authentication, per-service sessions, subscriptions, quotas, and authorization decisions for multi-service products.",
+  "branch": "main",
+  "userStories": [
+    {
+      "id": "SCHEMA-001",
+      "title": "Database schema migration - Core tables",
+      "description": "Create migration file with new core tables: tenants (id, name, global_quota_limit), tenant_users (tenant_id, user_id, role), updated sessions with service field.",
+      "acceptanceCriteria": [
+        "Migration file created in migrations/ folder",
+        "tenants table with id, name, global_quota_limit, created_at, updated_at",
+        "tenant_users table with tenant_id, user_id, role, created_at",
+        "sessions table updated with service field",
+        "Migration runs without errors: npm run db:init:local"
+      ],
+      "passes": true,
+      "priority": 1
+    },
+    {
+      "id": "SCHEMA-002",
+      "title": "Database schema migration - API keys and usage",
+      "description": "Create/update api_keys table with scopes, quota_limit, quota_period, created_by, last_used_at, expires_at, revoked_at. Create usage_events table with idempotency_key.",
+      "acceptanceCriteria": [
+        "api_keys table has all required columns",
+        "usage_events table created with tenant_id, api_key_id, user_id, service, action, quantity, period, timestamp, idempotency_key",
+        "Proper indexes on frequently queried columns",
+        "Migration runs without errors"
+      ],
+      "passes": false,
+      "priority": 2
+    },
+    {
+      "id": "SCHEMA-003",
+      "title": "Database schema migration - Features, overrides, webhooks",
+      "description": "Create feature_flags, admin_overrides, webhook_endpoints, webhook_events tables.",
+      "acceptanceCriteria": [
+        "feature_flags table with id, name, enabled_tiers, enabled_tenants, rollout_percentage, active",
+        "admin_overrides table with id, tenant_id, type, value, reason, granted_by, expires_at, created_at",
+        "webhook_endpoints table with id, tenant_id, url, events, active",
+        "webhook_events table with id, endpoint_id, event_type, payload, delivered_at",
+        "subscription_items table with id, subscription_id, service, enabled",
+        "Migration runs without errors"
+      ],
+      "passes": false,
+      "priority": 3
+    },
+    {
+      "id": "INFRA-001",
+      "title": "Strong consistency wrapper for D1",
+      "description": "Create utility function that enforces strong consistency for all auth-path D1 reads.",
+      "acceptanceCriteria": [
+        "createAuthDB utility function created",
+        "All queries use { consistency: 'strong' } option",
+        "Exported from src/utils/db.ts or similar",
+        "TypeScript types for query results"
+      ],
+      "passes": false,
+      "priority": 4
+    },
+    {
+      "id": "INFRA-002",
+      "title": "KV fallback cache for D1 outages",
+      "description": "Implement KV-based caching for auth decisions with fallback on D1 failure.",
+      "acceptanceCriteria": [
+        "KV namespace binding added to wrangler.toml",
+        "Cache wrapper function that stores successful auth decisions",
+        "Fallback logic that returns cached result with degraded: true on D1 error",
+        "TTL of 60 seconds for cached decisions",
+        "Types updated in env.ts"
+      ],
+      "passes": false,
+      "priority": 5
+    },
+    {
+      "id": "INFRA-003",
+      "title": "Typed repository pattern - Base implementation",
+      "description": "Create base repository pattern replacing adapter abstraction. Create AuthRepository with typed methods.",
+      "acceptanceCriteria": [
+        "AuthRepository class created in src/repositories/",
+        "Methods use explicit SQL queries",
+        "All methods properly typed with generics",
+        "Batch operations support",
+        "Integration with strong consistency wrapper"
+      ],
+      "passes": false,
+      "priority": 6
+    },
+    {
+      "id": "TENANT-001",
+      "title": "Tenant service - CRUD operations",
+      "description": "Implement TenantService with create, read, update, delete operations for tenants.",
+      "acceptanceCriteria": [
+        "TenantService class in src/services/",
+        "createTenant, getTenant, updateTenant, deleteTenant methods",
+        "Proper ID generation (tenant_xxx format)",
+        "Zod schemas for tenant validation",
+        "TypeScript interfaces for Tenant"
+      ],
+      "passes": false,
+      "priority": 7
+    },
+    {
+      "id": "TENANT-002",
+      "title": "Tenant-user relationships",
+      "description": "Implement tenant-user association with roles (owner, admin, member).",
+      "acceptanceCriteria": [
+        "addUserToTenant, removeUserFromTenant methods",
+        "getUserTenants, getTenantUsers methods",
+        "Role management (owner, admin, member)",
+        "Prevent removing last owner",
+        "Zod schemas for tenant-user operations"
+      ],
+      "passes": false,
+      "priority": 8
+    },
+    {
+      "id": "JWT-001",
+      "title": "JWT redesign with jose library",
+      "description": "Replace manual JWT implementation with jose. Support session and API key JWT formats.",
+      "acceptanceCriteria": [
+        "jose package installed",
+        "Session JWT: { sub, tenant_id, session_id, aud, exp }",
+        "API Key JWT: { sub (tenant), api_key_id, scope, aud, exp }",
+        "signJWT and verifyJWT functions using jose",
+        "Existing tests still pass"
+      ],
+      "passes": false,
+      "priority": 9
+    },
+    {
+      "id": "JWT-002",
+      "title": "JWKS endpoint for public key distribution",
+      "description": "Implement /.well-known/jwks.json endpoint for services to verify JWTs.",
+      "acceptanceCriteria": [
+        "GET /.well-known/jwks.json endpoint",
+        "Returns public keys in JWKS format",
+        "Proper caching headers",
+        "Works with jose library"
+      ],
+      "passes": false,
+      "priority": 10
+    },
+    {
+      "id": "SESSION-001",
+      "title": "Per-service sessions",
+      "description": "Modify session model for per-service sessions (one session per user+tenant+service).",
+      "acceptanceCriteria": [
+        "Session includes service field",
+        "Unique constraint on (user_id, tenant_id, service)",
+        "Login creates/updates session for specific service",
+        "JWT includes service as audience",
+        "Per-service logout works"
+      ],
+      "passes": false,
+      "priority": 11
+    },
+    {
+      "id": "APIKEY-001",
+      "title": "API key generation and storage",
+      "description": "Implement API key creation with secure generation, hashing, and storage.",
+      "acceptanceCriteria": [
+        "generateApiKey function with secure random",
+        "Key stored as SHA-256 hash (never plaintext)",
+        "Key prefix for identification (e.g., oka_live_xxx)",
+        "createApiKey, getApiKey, listApiKeys methods",
+        "Scopes stored as JSON array"
+      ],
+      "passes": false,
+      "priority": 12
+    },
+    {
+      "id": "APIKEY-002",
+      "title": "API key validation and JWT exchange",
+      "description": "Implement API key validation endpoint that exchanges key for JWT.",
+      "acceptanceCriteria": [
+        "POST /api/auth/apikey endpoint",
+        "Validates key against stored hash",
+        "Returns JWT with api_key_id and scopes",
+        "Updates last_used_at on validation",
+        "Rejects expired or revoked keys"
+      ],
+      "passes": false,
+      "priority": 13
+    },
+    {
+      "id": "APIKEY-003",
+      "title": "API key management endpoints",
+      "description": "Implement CRUD endpoints for API key management.",
+      "acceptanceCriteria": [
+        "POST /api/keys - create key (returns key once)",
+        "GET /api/keys - list keys (no secrets)",
+        "DELETE /api/keys/:id - revoke key",
+        "Only tenant admins/owners can manage keys",
+        "Proper authorization checks"
+      ],
+      "passes": false,
+      "priority": 14
+    },
+    {
+      "id": "SUB-001",
+      "title": "Enhanced subscription model",
+      "description": "Update subscriptions to be tenant-based with tier and period tracking.",
+      "acceptanceCriteria": [
+        "Subscription tied to tenant_id",
+        "tier field (free, pro, enterprise)",
+        "status field (active, canceled, past_due)",
+        "current_period_end timestamp",
+        "SubscriptionService with getSubscription, updateSubscription"
+      ],
+      "passes": false,
+      "priority": 15
+    },
+    {
+      "id": "SUB-002",
+      "title": "Subscription items for per-service enablement",
+      "description": "Implement subscription_items for enabling/disabling services per subscription.",
+      "acceptanceCriteria": [
+        "subscription_items table populated",
+        "isServiceEnabled(subscription_id, service) method",
+        "enableService, disableService methods",
+        "Subscription includes items in response"
+      ],
+      "passes": false,
+      "priority": 16
+    },
+    {
+      "id": "QUOTA-001",
+      "title": "Usage tracking with idempotency",
+      "description": "Implement usage event recording with idempotent increments.",
+      "acceptanceCriteria": [
+        "recordUsage function with idempotency_key",
+        "Duplicate idempotency_key is ignored",
+        "usage_events table populated correctly",
+        "getUsage(tenant_id, period) method"
+      ],
+      "passes": false,
+      "priority": 17
+    },
+    {
+      "id": "QUOTA-002",
+      "title": "Hierarchical quota checking",
+      "description": "Implement quota checking at per-key and global tenant levels.",
+      "acceptanceCriteria": [
+        "checkQuota function checks per-key limit first",
+        "Then checks global tenant limit",
+        "99% buffer for race conditions (QUOTA_BUFFER)",
+        "Returns { allowed, remaining, level } object"
+      ],
+      "passes": false,
+      "priority": 18
+    },
+    {
+      "id": "FLAG-001",
+      "title": "Feature flags implementation",
+      "description": "Implement feature flag system with tier, tenant, and rollout support.",
+      "acceptanceCriteria": [
+        "featureEnabled(flagName, tenant) function",
+        "Checks enabled_tiers array",
+        "Checks enabled_tenants array",
+        "Supports rollout_percentage (deterministic by tenant_id)",
+        "FeatureFlagService for CRUD"
+      ],
+      "passes": false,
+      "priority": 19
+    },
+    {
+      "id": "OVERRIDE-001",
+      "title": "Admin overrides system",
+      "description": "Implement admin overrides for quota boosts, tier upgrades, feature grants.",
+      "acceptanceCriteria": [
+        "Override types: quota_boost, tier_upgrade, feature_grant",
+        "getActiveOverrides(tenant_id) returns non-expired overrides",
+        "createOverride with reason and granted_by audit fields",
+        "Overrides applied in authorize flow"
+      ],
+      "passes": false,
+      "priority": 20
+    },
+    {
+      "id": "AUTH-001",
+      "title": "Core authorize() function",
+      "description": "Implement central authorize() that checks session, subscription, quota, RBAC, flags, overrides.",
+      "acceptanceCriteria": [
+        "authorize(ctx) function in AuthService",
+        "Checks in order: session -> subscription -> service enabled -> flags -> quota -> RBAC -> overrides",
+        "Returns { allowed, reason, metadata }",
+        "Uses strong consistency for all reads",
+        "Caches result in KV"
+      ],
+      "passes": false,
+      "priority": 21
+    },
+    {
+      "id": "AUTH-002",
+      "title": "Authorize API endpoint",
+      "description": "Create POST /api/authorize endpoint for services to call.",
+      "acceptanceCriteria": [
+        "POST /api/authorize endpoint",
+        "Accepts { action, resource, context }",
+        "Requires valid JWT",
+        "Returns authorize() result",
+        "Zod schema for request validation"
+      ],
+      "passes": false,
+      "priority": 22
+    },
+    {
+      "id": "WEBHOOK-001",
+      "title": "Webhook endpoints management",
+      "description": "Implement webhook endpoint registration for tenants.",
+      "acceptanceCriteria": [
+        "registerWebhook(tenant_id, url, events[])",
+        "listWebhooks(tenant_id)",
+        "deleteWebhook(webhook_id)",
+        "API routes for webhook management",
+        "Validate URL format"
+      ],
+      "passes": false,
+      "priority": 23
+    },
+    {
+      "id": "WEBHOOK-002",
+      "title": "Webhook event emission",
+      "description": "Implement event emission when state changes occur.",
+      "acceptanceCriteria": [
+        "emitEvent(event_type, payload) function",
+        "Events: subscription.upgraded, subscription.downgraded, user.added_to_tenant, api_key.revoked, quota.exceeded",
+        "Events recorded in webhook_events table",
+        "Integration points in relevant services"
+      ],
+      "passes": false,
+      "priority": 24
+    },
+    {
+      "id": "BACKUP-001",
+      "title": "R2 backup system",
+      "description": "Implement scheduled worker for daily D1 backups to R2.",
+      "acceptanceCriteria": [
+        "R2 bucket binding in wrangler.toml",
+        "Scheduled trigger configured (cron)",
+        "Exports: users, tenants, subscriptions, api_keys, sessions",
+        "File path: backups/{table}/{timestamp}.json",
+        "Backup worker in src/scheduled/"
+      ],
+      "passes": false,
+      "priority": 25
+    },
+    {
+      "id": "LOG-001",
+      "title": "Structured logging enhancement",
+      "description": "Enhance logging middleware with structured JSON and request correlation.",
+      "acceptanceCriteria": [
+        "JSON formatted logs",
+        "Request correlation ID (x-request-id)",
+        "Log authorize() decisions with context",
+        "Log access denied with reasons",
+        "Log level support (info, warn, error)"
+      ],
+      "passes": false,
+      "priority": 26
+    },
+    {
+      "id": "ROUTE-001",
+      "title": "API routes - Tenant management",
+      "description": "Create API routes for tenant CRUD and user management.",
+      "acceptanceCriteria": [
+        "POST /api/tenants - create tenant",
+        "GET /api/tenants/:id - get tenant",
+        "PATCH /api/tenants/:id - update tenant",
+        "POST /api/tenants/:id/users - add user",
+        "DELETE /api/tenants/:id/users/:userId - remove user",
+        "Zod schemas for all endpoints"
+      ],
+      "passes": false,
+      "priority": 27
+    },
+    {
+      "id": "ROUTE-002",
+      "title": "API routes - Subscription and quota",
+      "description": "Create API routes for subscription and usage endpoints.",
+      "acceptanceCriteria": [
+        "GET /api/subscriptions/:tenantId",
+        "POST /api/subscriptions/:tenantId/upgrade",
+        "GET /api/usage/:tenantId",
+        "POST /api/usage/record (internal)",
+        "Proper authorization checks"
+      ],
+      "passes": false,
+      "priority": 28
+    },
+    {
+      "id": "ROUTE-003",
+      "title": "API routes - Feature flags and overrides",
+      "description": "Create admin API routes for feature flags and overrides.",
+      "acceptanceCriteria": [
+        "GET/POST/PATCH/DELETE /api/admin/flags",
+        "GET/POST/DELETE /api/admin/overrides",
+        "Admin-only authorization",
+        "Zod schemas for all"
+      ],
+      "passes": false,
+      "priority": 29
+    },
+    {
+      "id": "TEST-001",
+      "title": "Unit tests for core services",
+      "description": "Write unit tests for AuthService, TenantService, QuotaService.",
+      "acceptanceCriteria": [
+        "Tests for AuthService.authorize()",
+        "Tests for TenantService CRUD",
+        "Tests for QuotaService.checkQuota()",
+        "Tests for FeatureFlagService.featureEnabled()",
+        "All tests pass"
+      ],
+      "passes": false,
+      "priority": 30
+    },
+    {
+      "id": "TEST-002",
+      "title": "Integration tests for auth flows",
+      "description": "Write integration tests for complete auth flows.",
+      "acceptanceCriteria": [
+        "Test: signup -> login -> refresh -> logout",
+        "Test: API key create -> exchange -> authorize",
+        "Test: quota enforcement",
+        "Test: KV fallback behavior",
+        "All tests pass"
+      ],
+      "passes": false,
+      "priority": 31
+    },
+    {
+      "id": "DOC-001",
+      "title": "Update README and API documentation",
+      "description": "Update README with new architecture and document all endpoints.",
+      "acceptanceCriteria": [
+        "README reflects new architecture",
+        "All new endpoints documented",
+        "Database schema documented",
+        "Restore runbook created",
+        "Environment variables documented"
+      ],
+      "passes": false,
+      "priority": 32
+    }
+  ]
+}

@@ -6,7 +6,18 @@
       "Bash(npm run build:*)",
       "Bash(npm run type-check:*)",
       "Bash(echo:*)",
-      "Bash(./node_modules/.bin/tsc:*)"
+      "Bash(./node_modules/.bin/tsc:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(python ralph.py:*)"
     ]
-  }
+  },
+
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+    "ANTHROPIC_AUTH_TOKEN": "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",
+    "ANTHROPIC_API_KEY": ""  
 }
+}
+
+  
