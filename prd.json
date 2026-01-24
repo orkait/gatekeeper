@@ -69,7 +69,7 @@
         "TTL of 60 seconds for cached decisions",
         "Types updated in env.ts"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 5
     },
     {

@@ -61,3 +61,13 @@
 - QueryResult<T> and D1Meta types for query results
 - Exported from src/utils/index.ts
 - Note: D1 types don't expose { consistency: 'strong' } directly; used session-based approach
+
+[2026-01-24T20:28:19+05:30] INFRA-002 completed
+- Added AUTH_CACHE KV namespace binding to wrangler.toml
+- Created src/utils/cache.ts with createAuthCache() and withCacheFallback()
+- AuthCache interface: set, get, delete, deleteByPrefix methods
+- withCacheFallback wraps DB ops: caches success, returns cached on D1 failure with degraded: true
+- CacheKeyPrefix constants for consistent key naming (SESSION, API_KEY, AUTH_DECISION, USER, TENANT)
+- Default TTL: 60 seconds (AUTH_CACHE_TTL_SECONDS)
+- Updated Bindings to include AUTH_CACHE: KVNamespace
+- Updated getEnv() to expose authCache binding
