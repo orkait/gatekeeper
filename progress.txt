@@ -43,3 +43,13 @@
 - Indexes on: tenant_id, key_hash, key_prefix, status, created_by, expires_at for api_keys
 - Indexes on: tenant_id, api_key_id, user_id, service, period, timestamp, idempotency_key, (tenant_id, period) for usage_events
 - Migration runs without errors locally
+
+[2026-01-24T20:23:13+05:30] SCHEMA-003 completed
+- Created migrations/0004_features_webhooks.sql
+- feature_flags: id, name, description, enabled_tiers (JSON), enabled_tenants (JSON), rollout_percentage (0-100), active, timestamps
+- admin_overrides: id, tenant_id, type (quota_boost/tier_upgrade/feature_grant), value, reason, granted_by, expires_at
+- webhook_endpoints: id, tenant_id, url, events (JSON), secret, active, timestamps
+- webhook_events: id, endpoint_id, event_type, payload, status, attempts, delivered_at
+- subscription_items: id, subscription_id, service, enabled, UNIQUE(subscription_id, service)
+- All tables have proper indexes on frequently queried columns
+- Migration runs without errors locally

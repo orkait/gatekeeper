@@ -42,7 +42,7 @@
         "subscription_items table with id, subscription_id, service, enabled",
         "Migration runs without errors"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 3
     },
     {
