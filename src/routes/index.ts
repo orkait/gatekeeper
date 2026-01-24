@@ -3,6 +3,7 @@ import authRoutes from "./auth.routes";
 import apikeyRoutes from "./apikey.routes";
 import keysRoutes from "./keys.routes";
 import authorizeRoutes from "./authorize.routes";
+import webhookRoutes from "./webhook.routes";
 
 export function createAPIRouter() {
     const api = new Hono();
@@ -18,6 +19,7 @@ export function createAPIRouter() {
     api.route("/auth/apikey", apikeyRoutes);
     api.route("/keys", keysRoutes);
     api.route("/authorize", authorizeRoutes);
+    api.route("/webhooks", webhookRoutes);
 
     return api;
 }
