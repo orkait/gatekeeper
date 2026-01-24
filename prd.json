@@ -55,7 +55,7 @@
         "Exported from src/utils/db.ts or similar",
         "TypeScript types for query results"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 4
     },
     {

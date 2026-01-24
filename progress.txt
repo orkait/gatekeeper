@@ -53,3 +53,11 @@
 - subscription_items: id, subscription_id, service, enabled, UNIQUE(subscription_id, service)
 - All tables have proper indexes on frequently queried columns
 - Migration runs without errors locally
+
+[2026-01-24T20:25:54+05:30] INFRA-001 completed
+- Created src/utils/db.ts with createAuthDB wrapper function
+- Uses D1 sessions with 'first-primary' constraint for sequential consistency
+- AuthDB interface with typed methods: first<T>, all<T>, run, batch
+- QueryResult<T> and D1Meta types for query results
+- Exported from src/utils/index.ts
+- Note: D1 types don't expose { consistency: 'strong' } directly; used session-based approach
