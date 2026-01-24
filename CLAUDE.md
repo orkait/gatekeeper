@@ -56,22 +56,22 @@ Story from prd.json
        ↓
    Subtask 4: verifyWorking (test actual functionality)
        ↓
-   Commit: "feat: STORY_ID verified - all subtasks complete"
-       ↓
    Update prd.json: verified: true + all subtask flags
        ↓
    Log verification to progress.txt
+       ↓
+   Commit: "feat: STORY_ID verified - all subtasks complete"
        ↓
 [Story Fully Complete] ← ONLY NOW can move to next story
        ↓
 Next Story (repeat)
 ```
 
-**Order is critical:**
-1. Complete all verification subtasks
-2. Commit the verification changes
-3. Update prd.json with all flags
-4. Write to progress.txt
+**Correct Order:**
+1. Complete all verification subtasks (actual code changes)
+2. Update prd.json with all flags (documentation)
+3. Write to progress.txt (logging)
+4. Commit everything together (one commit)
 
 ## Your Context
 
@@ -299,14 +299,7 @@ npm run lint       # (if configured)
 - Verify integration with existing code
 - Verify security checks
 
-### 9. Commit Verification Changes
-After ALL verification subtasks are complete:
-```powershell
-git add -A
-git commit -m "feat: [STORY_ID] verified - removeDeadCode, removeComments, qualityCheck, verifyWorking"
-```
-
-### 10. Update prd.json with verification status
+### 9. Update prd.json with verification status
 Set all subtask flags and `verified: true`:
 ```json
 {
@@ -321,7 +314,7 @@ Set all subtask flags and `verified: true`:
 }
 ```
 
-### 11. Log to progress.txt
+### 10. Log to progress.txt
 Append verification details to progress.txt:
 ```
 [TIMESTAMP] STORY_ID verified
@@ -329,6 +322,13 @@ Append verification details to progress.txt:
 - Comments cleaned: [count removed]
 - Quality checks: PASSED (type-check, tests)
 - Verification results: [list what was tested and confirmed working]
+```
+
+### 11. Commit Everything Together
+After subtasks are complete, prd.json is updated, and progress.txt is written:
+```powershell
+git add prd.json progress.txt [other modified files]
+git commit -m "feat: [STORY_ID] verified - removeDeadCode, removeComments, qualityCheck, verifyWorking"
 ```
 
 ## Code Patterns for This Project
@@ -560,11 +560,11 @@ You are DONE with this iteration when BOTH phases are complete:
   - [ ] Error cases verified
   - [ ] Integration verified
   - [ ] Security checks verified
-- [ ] **Commit verification changes** to git: `git commit -m "feat: STORY_ID verified"`
 - [ ] **Update prd.json** with `verified: true` and all subtask flags
 - [ ] **Write to progress.txt** with verification details
+- [ ] **Commit everything together**: `git commit -m "feat: STORY_ID verified"`
 
-**Order must be: subtasks → commit → update prd.json → write progress.txt**
+**Correct Order: subtasks → update prd.json → write progress.txt → commit**
 
 **CRITICAL: A story is NOT complete until `verified: true` is set. Do NOT move to the next story until verification phase is done.**
 
