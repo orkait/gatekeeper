@@ -1,25 +1,62 @@
 # Orkait Auth
 
-A modern authentication and subscription management microservice built on Cloudflare Workers with TypeScript.
+A serverless control plane for authentication, per-service sessions, subscriptions, quotas, and authorization decisions for multi-service products. Built on Cloudflare Workers with TypeScript.
 
 ## Features
 
+### Authentication & Sessions
 - **Email/Password Authentication** - Secure registration and login with PBKDF2 password hashing
 - **Google OAuth** - Seamless Google Sign-In integration with automatic account linking
-- **JWT Token Management** - Access tokens (15 min) and refresh tokens (7 days) with rotation
-- **Multi-device Logout** - Single session or all sessions logout support
-- **Subscription Management** - Multi-tenant SaaS subscription tiers (infrastructure ready)
-- **API Key Generation** - Programmatic access credentials (infrastructure ready)
-- **Usage Tracking** - Quota tracking per billing period (infrastructure ready)
-- **Webhook System** - Event notification delivery (infrastructure ready)
+- **Per-Service Sessions** - One session per user+tenant+service combination
+- **JWT Token Management** - Access tokens with service-scoped audiences
+- **JWKS Endpoint** - Public key distribution for external JWT verification
+
+### Multi-Tenancy
+- **Tenant Management** - Full CRUD for tenants with quota limits
+- **Role-Based Access** - Owner, admin, and member roles per tenant
+- **User Management** - Add/remove users, update roles
+
+### API Keys
+- **Secure Generation** - SHA-256 hashed storage, plaintext shown once
+- **Scoped Access** - Per-key scopes and quota limits
+- **JWT Exchange** - Exchange API keys for short-lived JWTs
+
+### Subscriptions & Quotas
+- **Tier Management** - Free, pro, enterprise subscription tiers
+- **Per-Service Enablement** - Enable/disable services per subscription
+- **Hierarchical Quotas** - Per-key limits, then global tenant limits
+- **Usage Tracking** - Idempotent usage recording with events
+
+### Feature Flags & Overrides
+- **Feature Flags** - Tier-based, tenant-specific, and rollout percentage
+- **Admin Overrides** - Quota boosts, tier upgrades, feature grants
+- **Deterministic Rollouts** - Consistent results based on tenant ID
+
+### Authorization
+- **Central authorize()** - Single function for all authorization decisions
+- **Multi-Factor Checks** - Session, subscription, service, feature, quota, RBAC
+- **KV Caching** - Cached decisions with D1 fallback support
+
+### Webhooks
+- **Endpoint Registration** - Per-tenant webhook URLs
+- **Event Emission** - subscription.*, user.*, api_key.*, quota.*
+- **Delivery Tracking** - Pending, delivered, failed statuses
+
+### Operations
+- **Structured Logging** - JSON logs with request correlation
+- **R2 Backups** - Scheduled daily backups to R2
+- **Strong Consistency** - D1 sessions for auth-critical reads
 
 ## Tech Stack
 
 - **Runtime**: [Cloudflare Workers](https://workers.cloudflare.com/) (serverless edge computing)
 - **Framework**: [Hono](https://hono.dev/) (lightweight web framework)
 - **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite-based distributed database)
+- **Cache**: [Cloudflare KV](https://developers.cloudflare.com/kv/) (auth decision caching)
+- **Storage**: [Cloudflare R2](https://developers.cloudflare.com/r2/) (backup storage)
 - **Language**: TypeScript (strict mode)
 - **Validation**: [Zod](https://zod.dev/) (runtime schema validation)
+- **JWT**: [jose](https://github.com/panva/jose) (JWT signing/verification)
 
 ## Project Structure
 
@@ -27,28 +64,51 @@ A modern authentication and subscription management microservice built on Cloudf
 orka-auth/
 ├── src/
 │   ├── adapters/           # Storage abstraction layer
-│   │   ├── adapter.ts      # Interface & factory pattern
-│   │   ├── d1_adapter.ts   # Cloudflare D1 implementation
-│   │   └── memory_adapter.ts # In-memory storage (testing)
 │   ├── middleware/         # Request middleware
 │   │   ├── auth.ts         # JWT verification
 │   │   ├── cors.ts         # CORS configuration
 │   │   ├── error-handler.ts # Centralized error handling
-│   │   ├── logger.ts       # Request logging
-│   │   └── service-injector.ts # Dependency injection
+│   │   ├── logger.ts       # Structured JSON logging
+│   │   └── service-injector.ts
+│   ├── repositories/       # Database access layer
+│   │   └── auth.repository.ts # Typed SQL queries
 │   ├── routes/             # API route handlers
-│   │   ├── index.ts        # Route aggregation
-│   │   └── auth.routes.ts  # Authentication endpoints
+│   │   ├── admin.routes.ts # Feature flags & overrides
+│   │   ├── auth.routes.ts  # Authentication
+│   │   ├── authorize.routes.ts # Authorization endpoint
+│   │   ├── keys.routes.ts  # API key management
+│   │   ├── subscription.routes.ts # Subscriptions & usage
+│   │   ├── tenant.routes.ts # Tenant management
+│   │   └── webhook.routes.ts # Webhook management
+│   ├── scheduled/          # Scheduled workers
+│   │   └── backup.ts       # R2 backup worker
 │   ├── services/           # Business logic
-│   │   └── auth.service.ts # Core authentication service
-│   ├── schemas/            # Input validation
-│   │   └── auth.schema.ts  # Zod validation schemas
-│   ├── types.ts            # TypeScript interfaces
-│   ├── env.ts              # Environment configuration
-│   ├── server.ts           # App setup & middleware chain
-│   └── index.ts            # Entry point
-├── migrations/
-│   └── 0001_init.sql       # Database schema (8 tables)
+│   │   ├── apikey.service.ts
+│   │   ├── auth.service.ts
+│   │   ├── authorization.service.ts # Central authorize()
+│   │   ├── featureflag.service.ts
+│   │   ├── jwt.service.ts
+│   │   ├── override.service.ts
+│   │   ├── quota.service.ts
+│   │   ├── session.service.ts
+│   │   ├── subscription.service.ts
+│   │   ├── tenant.service.ts
+│   │   └── webhook.service.ts
+│   ├── schemas/            # Zod validation schemas
+│   ├── utils/              # Utilities
+│   │   ├── cache.ts        # KV cache helpers
+│   │   └── db.ts           # D1 strong consistency
+│   ├── types.ts
+│   ├── env.ts
+│   ├── server.ts
+│   └── index.ts
+├── migrations/             # D1 schema migrations
+│   ├── 0001_init.sql
+│   ├── 0002_core_tables.sql
+│   ├── 0003_api_keys_usage.sql
+│   ├── 0004_features_webhooks.sql
+│   ├── 0005_tenant_subscriptions.sql
+│   └── 0006_tenant_subscription_items.sql
 ├── wrangler.toml           # Cloudflare Workers config
 ├── package.json
 └── tsconfig.json
@@ -59,34 +119,39 @@ orka-auth/
 ### Prerequisites
 
 - Node.js 18+
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) (`npm install -g wrangler`)
-- Cloudflare account (for deployment)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)
+- Cloudflare account
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd orka-auth
-
-# Install dependencies
 npm install
 ```
 
 ### Configuration
 
-Create environment variables in `wrangler.toml` or via Cloudflare dashboard:
+Create secrets via Wrangler:
+
+```bash
+wrangler secret put JWT_SECRET
+wrangler secret put INTERNAL_SECRET
+```
+
+Environment variables in `wrangler.toml`:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `JWT_SECRET` | Yes | - | Secret key for JWT signing |
-| `INTERNAL_SECRET` | Yes | - | Internal API validation key |
-| `ENVIRONMENT` | No | `production` | Environment (production/development/staging/test) |
-| `JWT_EXPIRES_IN` | No | `900` | Access token expiry in seconds (15 min) |
-| `REFRESH_TOKEN_EXPIRES_IN` | No | `604800` | Refresh token expiry in seconds (7 days) |
+| `JWT_SECRET` | Yes | - | Secret for JWT signing |
+| `INTERNAL_SECRET` | Yes | - | Internal API authentication |
+| `ENVIRONMENT` | No | `production` | Environment mode |
+| `JWT_EXPIRES_IN` | No | `900` | Access token expiry (seconds) |
+| `REFRESH_TOKEN_EXPIRES_IN` | No | `604800` | Refresh token expiry (seconds) |
 | `GOOGLE_CLIENT_ID` | No | - | Google OAuth client ID |
-| `ALLOWED_ORIGINS` | No | `*` | CORS allowed origins (comma-separated) |
-| `STORAGE_ADAPTER` | No | `auto` | Storage adapter (memory/d1/auto) |
+| `ALLOWED_ORIGINS` | No | `*` | CORS origins (comma-separated) |
+| `RSA_PRIVATE_KEY` | No | - | RSA private key for JWKS |
+| `RSA_PUBLIC_KEY` | No | - | RSA public key for JWKS |
 
 ### Local Development
 
@@ -101,251 +166,184 @@ npm run dev
 ### Deployment
 
 ```bash
-# Initialize production D1 database
-npm run db:init:prod
+# Create D1 database
+wrangler d1 create orkait_auth
 
-# Deploy to Cloudflare Workers
+# Create KV namespace
+wrangler kv:namespace create AUTH_CACHE
+
+# Create R2 bucket
+wrangler r2 bucket create orkait-auth-backups
+
+# Update wrangler.toml with IDs
+
+# Deploy
 npm run deploy
 ```
 
 ## API Reference
 
-### Base URL
+### Authentication
 
-```
-Production: https://orkait-auth.<your-subdomain>.workers.dev
-Local: http://localhost:8787
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/signup` | POST | Register new user |
+| `/api/auth/login` | POST | Email/password login |
+| `/api/auth/google` | POST | Google OAuth login |
+| `/api/auth/refresh` | POST | Refresh access token |
+| `/api/auth/logout` | POST | Logout single session |
+| `/api/auth/logout-all` | POST | Logout all sessions |
+| `/api/auth/apikey` | POST | Exchange API key for JWT |
 
-### Endpoints
+### Authorization
 
-#### Health Check
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/authorize` | POST | Central authorization check |
 
-```http
-GET /api/health
-```
-
-Response:
-
+Request:
 ```json
 {
-  "status": "ok",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "version": "1.0.0",
-  "service": "orkait-auth"
-}
-```
-
-#### Sign Up
-
-```http
-POST /api/auth/signup
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "securePassword123",
-  "name": "John Doe"  // optional
-}
-```
-
-Response (201):
-
-```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "eyJ...",
-    "refreshToken": "rt_...",
-    "expiresIn": 900,
-    "user": {
-      "id": "usr_...",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "status": "active"
-    }
+  "action": "read",
+  "resource": "documents/123",
+  "context": {
+    "tenantId": "tenant_xxx",
+    "service": "documents",
+    "requiredFeature": "advanced_export",
+    "requiredRole": "admin"
   }
 }
 ```
 
-#### Login
+### Tenants
 
-```http
-POST /api/auth/login
-Content-Type: application/json
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/tenants` | POST | Create tenant |
+| `/api/tenants/:id` | GET | Get tenant |
+| `/api/tenants/:id` | PATCH | Update tenant |
+| `/api/tenants/:id` | DELETE | Delete tenant |
+| `/api/tenants/:id/users` | GET | List tenant users |
+| `/api/tenants/:id/users` | POST | Add user to tenant |
+| `/api/tenants/:id/users/:userId` | PATCH | Update user role |
+| `/api/tenants/:id/users/:userId` | DELETE | Remove user |
+| `/api/tenants/me/list` | GET | List user's tenants |
 
-{
-  "email": "user@example.com",
-  "password": "securePassword123"
-}
-```
+### API Keys
 
-Response (200): Same as signup
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/keys` | POST | Create API key |
+| `/api/keys` | GET | List API keys |
+| `/api/keys/:id` | GET | Get API key |
+| `/api/keys/:id` | PATCH | Update API key |
+| `/api/keys/:id` | DELETE | Revoke API key |
 
-#### Google OAuth
+### Subscriptions & Usage
 
-```http
-POST /api/auth/google
-Content-Type: application/json
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/subscriptions/:tenantId` | GET | Get subscription |
+| `/api/subscriptions/:tenantId/upgrade` | POST | Upgrade tier |
+| `/api/subscriptions/:tenantId/downgrade` | POST | Downgrade tier |
+| `/api/usage/:tenantId` | GET | Get usage summary |
+| `/api/usage/:tenantId/events` | GET | Get usage events |
+| `/api/usage/:tenantId/quota` | GET | Check quota status |
+| `/api/usage/record` | POST | Record usage (internal) |
 
-{
-  "idToken": "<JWT from Google Sign-In SDK>"
-}
-```
+### Webhooks
 
-Response (200): Same as signup
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/webhooks` | POST | Register webhook |
+| `/api/webhooks` | GET | List webhooks |
+| `/api/webhooks/:id` | GET | Get webhook |
+| `/api/webhooks/:id` | PATCH | Update webhook |
+| `/api/webhooks/:id` | DELETE | Delete webhook |
+| `/api/webhooks/events` | GET | List event types |
 
-#### Refresh Token
+### Admin (Feature Flags & Overrides)
 
-```http
-POST /api/auth/refresh
-Content-Type: application/json
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/flags` | GET | List feature flags |
+| `/api/admin/flags` | POST | Create feature flag |
+| `/api/admin/flags/:id` | GET | Get feature flag |
+| `/api/admin/flags/:id` | PATCH | Update feature flag |
+| `/api/admin/flags/:id` | DELETE | Delete feature flag |
+| `/api/admin/flags/:id/toggle` | POST | Toggle flag |
+| `/api/admin/overrides` | GET | List overrides |
+| `/api/admin/overrides` | POST | Create override |
+| `/api/admin/overrides/:id` | DELETE | Delete override |
+| `/api/admin/overrides/:id/expire` | POST | Expire override |
 
-{
-  "refreshToken": "rt_..."
-}
-```
+### JWKS
 
-Response (200): Same as signup (new token pair)
-
-#### Logout (Single Session)
-
-```http
-POST /api/auth/logout
-Authorization: Bearer <accessToken>
-Content-Type: application/json
-
-{
-  "refreshToken": "rt_..."
-}
-```
-
-Response (200):
-
-```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
-
-#### Logout All Sessions
-
-```http
-POST /api/auth/logout-all
-Authorization: Bearer <accessToken>
-```
-
-Response (200):
-
-```json
-{
-  "success": true,
-  "message": "Logged out from all devices"
-}
-```
-
-### Error Responses
-
-All errors follow this format:
-
-```json
-{
-  "success": false,
-  "error": "Error message",
-  "details": {},  // optional, for validation errors
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "path": "/api/auth/login"
-}
-```
-
-| Status | Description |
-|--------|-------------|
-| 400 | Bad Request (validation error, duplicate email) |
-| 401 | Unauthorized (invalid credentials, expired token) |
-| 404 | Not Found |
-| 500 | Internal Server Error |
-
-## Authentication Flow
-
-### Email/Password Flow
-
-1. Client calls `POST /api/auth/signup` with email, password
-2. Server hashes password with PBKDF2 (100k iterations)
-3. Server creates user and generates JWT access token + refresh token
-4. Client stores tokens and uses access token for authenticated requests
-
-### Token Refresh Flow
-
-1. Access token expires after 15 minutes
-2. Client calls `POST /api/auth/refresh` with refresh token
-3. Server validates refresh token and issues new token pair
-4. Old refresh token is revoked (single-use)
-
-### Google OAuth Flow
-
-1. Client obtains ID token from Google Sign-In SDK
-2. Client calls `POST /api/auth/google` with ID token
-3. Server validates token (audience, issuer, expiration)
-4. Server creates/links user account and returns token pair
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/.well-known/jwks.json` | GET | Get public keys |
 
 ## Database Schema
 
-The database includes 8 tables:
-
+### Core Tables
 - **users** - User accounts and profiles
-- **api_products** - SaaS product definitions
-- **subscription_tiers** - Pricing tiers per product
-- **subscriptions** - User subscriptions to products
-- **api_keys** - Generated API credentials
-- **usage** - Quota tracking per billing period
-- **webhook_configs** - User webhook subscriptions
-- **webhook_deliveries** - Webhook delivery attempts
-- **refresh_tokens** - Session token management
+- **tenants** - Multi-tenant organizations
+- **tenant_users** - User-tenant relationships with roles
+- **sessions** - Per-service sessions with refresh tokens
 
-## Security Features
+### Subscription Tables
+- **subscriptions** - Tenant subscriptions with tiers
+- **tenant_subscription_items** - Per-service enablement
 
-- **Password Hashing**: PBKDF2-SHA256 with 100,000 iterations and random salt
-- **JWT Tokens**: HS256 HMAC signatures with Web Crypto API
-- **Token Rotation**: Refresh tokens are single-use (revoked after each use)
-- **Hash Storage**: Tokens stored as SHA-256 hashes (not plaintext)
-- **Input Validation**: Zod schemas validate all inputs
+### API & Usage Tables
+- **api_keys** - Hashed API keys with scopes/quotas
+- **usage_events** - Idempotent usage tracking
 
-## Development
+### Feature & Admin Tables
+- **feature_flags** - Feature flag configurations
+- **admin_overrides** - Quota/tier/feature overrides
 
-### Scripts
+### Webhook Tables
+- **webhook_endpoints** - Registered webhook URLs
+- **webhook_events** - Event delivery tracking
 
-```bash
-npm run dev          # Start local development server
-npm run deploy       # Deploy to Cloudflare Workers
-npm run db:init:local # Initialize local D1 database
-npm run db:init:prod  # Initialize production D1 database
+## Backup & Restore
+
+### Automated Backups
+
+Backups run daily at 2 AM UTC via scheduled trigger:
+- Tables: users, tenants, subscriptions, api_keys, sessions, etc.
+- Location: `backups/{table}/{timestamp}.json` in R2
+
+### Manual Restore
+
+```typescript
+import { restoreFromBackup } from './src/scheduled/backup';
+
+// Restore a specific table
+await restoreFromBackup(bucket, db, 'backups/users/2026-01-25T02-00-00-000Z.json');
 ```
 
-### Testing
+**Warning**: Restore deletes existing data before inserting backup data.
 
-The project uses Vitest for testing. The memory adapter enables testing without a database connection.
+## Testing
 
 ```bash
+# Run all tests
 npm test
+
+# Run with coverage
+npm run test:coverage
 ```
 
-## Architecture
+## Security
 
-### Design Patterns
-
-- **Adapter Pattern** - Storage abstraction with D1 and memory implementations
-- **Dependency Injection** - Services injected via middleware
-- **Middleware Chain** - Error handling, logging, CORS, service injection
-- **Service Layer** - Business logic isolated in services
-
-### Middleware Stack
-
-1. Error Handler (catches all exceptions)
-2. Request Logger (logs method, path, status, duration)
-3. CORS Middleware (configurable origins)
-4. Service Injector (provides AuthService)
-5. Auth Middleware (on protected routes only)
+- **Password Hashing**: PBKDF2-SHA256, 100k iterations
+- **JWT Signing**: HS256 (symmetric) or RS256 (asymmetric via JWKS)
+- **API Key Hashing**: SHA-256, plaintext never stored
+- **Token Rotation**: Refresh tokens are single-use
+- **Strong Consistency**: D1 sessions for auth-critical reads
+- **KV Fallback**: Degraded mode with cached decisions on D1 outage
 
 ## License
 
