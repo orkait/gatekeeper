@@ -26,6 +26,25 @@ export interface Subscription {
 }
 
 /**
+ * Subscription with enabled services.
+ */
+export interface SubscriptionWithItems extends Subscription {
+    items: SubscriptionItem[];
+}
+
+/**
+ * Subscription item (per-service enablement).
+ */
+export interface SubscriptionItem {
+    id: string;
+    subscriptionId: string;
+    service: string;
+    enabled: boolean;
+    createdAt: number;
+    updatedAt: number;
+}
+
+/**
  * Input for creating a subscription.
  */
 export interface CreateSubscriptionInput {
@@ -56,6 +75,19 @@ interface SubscriptionRow {
     created_at: number;
     updated_at: number;
     canceled_at: number | null;
+}
+
+/**
+ * Database row for subscription items table.
+ */
+interface SubscriptionItemRow {
+    [key: string]: unknown;
+    id: string;
+    subscription_id: string;
+    service: string;
+    enabled: number;
+    created_at: number;
+    updated_at: number;
 }
 
 /**
@@ -303,6 +335,147 @@ export class SubscriptionService {
     }
 
     // ========================================================================
+    // Subscription Items (Per-Service Enablement)
+    // ========================================================================
+
+    /**
+     * Get subscription with items for a tenant.
+     */
+    async getSubscriptionWithItems(
+        tenantId: string
+    ): Promise<ServiceResult<SubscriptionWithItems>> {
+        const subResult = await this.getSubscription(tenantId);
+        if (!subResult.success || !subResult.data) {
+            return { success: false, error: 'Subscription not found' };
+        }
+
+        const itemsResult = await this.repository.rawAll<SubscriptionItemRow>(
+            'SELECT * FROM tenant_subscription_items WHERE subscription_id = ? ORDER BY service',
+            [subResult.data.id]
+        );
+
+        const items = itemsResult.results.map(this.mapItemRow);
+
+        return {
+            success: true,
+            data: {
+                ...subResult.data,
+                items,
+            },
+        };
+    }
+
+    /**
+     * Check if a service is enabled for a subscription.
+     */
+    async isServiceEnabled(subscriptionId: string, service: string): Promise<boolean> {
+        const row = await this.repository.rawFirst<SubscriptionItemRow>(
+            'SELECT * FROM tenant_subscription_items WHERE subscription_id = ? AND service = ?',
+            [subscriptionId, service]
+        );
+
+        if (!row) {
+            // Service not configured, default to disabled
+            return false;
+        }
+
+        return row.enabled === 1;
+    }
+
+    /**
+     * Enable a service for a subscription.
+     */
+    async enableService(
+        subscriptionId: string,
+        service: string
+    ): Promise<ServiceResult<SubscriptionItem>> {
+        const now = Date.now();
+
+        // Check if item exists
+        const existing = await this.repository.rawFirst<SubscriptionItemRow>(
+            'SELECT * FROM tenant_subscription_items WHERE subscription_id = ? AND service = ?',
+            [subscriptionId, service]
+        );
+
+        if (existing) {
+            // Update existing
+            await this.repository.rawRun(
+                'UPDATE tenant_subscription_items SET enabled = 1, updated_at = ? WHERE subscription_id = ? AND service = ?',
+                [now, subscriptionId, service]
+            );
+        } else {
+            // Create new
+            const id = this.generateId('si');
+            await this.repository.rawRun(
+                `INSERT INTO tenant_subscription_items (id, subscription_id, service, enabled, created_at, updated_at)
+                 VALUES (?, ?, ?, 1, ?, ?)`,
+                [id, subscriptionId, service, now, now]
+            );
+        }
+
+        const row = await this.repository.rawFirst<SubscriptionItemRow>(
+            'SELECT * FROM tenant_subscription_items WHERE subscription_id = ? AND service = ?',
+            [subscriptionId, service]
+        );
+
+        return { success: true, data: this.mapItemRow(row!) };
+    }
+
+    /**
+     * Disable a service for a subscription.
+     */
+    async disableService(
+        subscriptionId: string,
+        service: string
+    ): Promise<ServiceResult<SubscriptionItem>> {
+        const now = Date.now();
+
+        // Check if item exists
+        const existing = await this.repository.rawFirst<SubscriptionItemRow>(
+            'SELECT * FROM tenant_subscription_items WHERE subscription_id = ? AND service = ?',
+            [subscriptionId, service]
+        );
+
+        if (existing) {
+            // Update existing
+            await this.repository.rawRun(
+                'UPDATE tenant_subscription_items SET enabled = 0, updated_at = ? WHERE subscription_id = ? AND service = ?',
+                [now, subscriptionId, service]
+            );
+        } else {
+            // Create new (disabled)
+            const id = this.generateId('si');
+            await this.repository.rawRun(
+                `INSERT INTO tenant_subscription_items (id, subscription_id, service, enabled, created_at, updated_at)
+                 VALUES (?, ?, ?, 0, ?, ?)`,
+                [id, subscriptionId, service, now, now]
+            );
+        }
+
+        const row = await this.repository.rawFirst<SubscriptionItemRow>(
+            'SELECT * FROM tenant_subscription_items WHERE subscription_id = ? AND service = ?',
+            [subscriptionId, service]
+        );
+
+        return { success: true, data: this.mapItemRow(row!) };
+    }
+
+    /**
+     * Get all subscription items (enabled services).
+     */
+    async getSubscriptionItems(
+        subscriptionId: string
+    ): Promise<ServiceResult<SubscriptionItem[]>> {
+        const result = await this.repository.rawAll<SubscriptionItemRow>(
+            'SELECT * FROM tenant_subscription_items WHERE subscription_id = ? ORDER BY service',
+            [subscriptionId]
+        );
+
+        const items = result.results.map(this.mapItemRow);
+        return { success: true, data: items };
+    }
+
+    // ========================================================================
     // Private Helpers
     // ========================================================================
 
@@ -320,6 +493,17 @@ export class SubscriptionService {
             createdAt: row.created_at,
             updatedAt: row.updated_at,
             canceledAt: row.canceled_at,
+        };
+    }
+
+    private mapItemRow(row: SubscriptionItemRow): SubscriptionItem {
+        return {
+            id: row.id,
+            subscriptionId: row.subscription_id,
+            service: row.service,
+            enabled: row.enabled === 1,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
         };
     }
 }
