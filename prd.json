@@ -40,7 +40,7 @@
       "passes": true,
       "priority": 1,
       "qualityCheck": true,
-      "refactor": false,
+      "refactor": true,
       "removeDeadCode": true,
       "removeComments": true,
       "verifyWorking": true,
@@ -58,12 +58,12 @@
       ],
       "passes": true,
       "priority": 2,
-      "qualityCheck": true,
-      "refactor": true,
-      "removeDeadCode": true,
-      "removeComments": true,
-      "verifyWorking": true,
-      "verified": true
+      "qualityCheck": false,
+      "refactor": false,
+      "removeDeadCode": false,
+      "removeComments": false,
+      "verifyWorking": false,
+      "verified": false
     },
     {
       "id": "SCHEMA-003",

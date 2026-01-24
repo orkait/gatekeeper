@@ -536,7 +536,15 @@ Each story in prd.json has a two-phase completion workflow:
 4. **Test coverage** - Add tests for new functionality
 5. **Strong consistency** - Use for ALL auth-related D1 reads
 6. **Keep it simple** - Minimal implementation that satisfies acceptance criteria
-7. **Cleanup before commit** - Always do cleanup pass if `cleanup: true` is set
+7. **CRITICAL: ALL subtasks MUST be complete before moving to next story**
+   - **NEVER set `verified: true` unless ALL subtasks are `true`:**
+     - `removeDeadCode: true`
+     - `removeComments: true`
+     - `refactor: true`
+     - `qualityCheck: true`
+     - `verifyWorking: true`
+   - **NEVER move to next story if current story has `verified: false`**
+   - **If ANY subtask is `false`, the story is NOT complete**
 
 ## File Structure Reference
 ```
@@ -583,7 +591,16 @@ You are DONE with this iteration when BOTH phases are complete:
 
 **Correct Order: subtasks → update prd.json → write progress.txt → commit**
 
-**CRITICAL: A story is NOT complete until `verified: true` is set. Do NOT move to the next story until verification phase is done.**
+**CRITICAL RULES:**
+1. **A story is NOT complete until `verified: true` is set**
+2. **ALL subtasks MUST be `true` before setting `verified: true`:**
+   - `removeDeadCode: true`
+   - `removeComments: true`
+   - `refactor: true`
+   - `qualityCheck: true`
+   - `verifyWorking: true`
+3. **NEVER move to next story if current story has `verified: false`**
+4. **If you see a story with some subtasks `true` but others `false`, complete the missing subtasks first**
 
 Then EXIT. The loop will start a fresh context for the next story.
 
