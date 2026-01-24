@@ -21,9 +21,10 @@ You are operating in an autonomous development loop. Each iteration you:
 **BEFORE moving to the next story, complete ALL verification subtasks:**
 1. **removeDeadCode**: Remove unused imports, functions, variables
 2. **removeComments**: Remove unnecessary comments
-3. **qualityCheck**: Run comprehensive quality checks (type-check, tests, lint)
-4. **verifyWorking**: Verify actual functionality works with manual testing
-5. **verified**: ONLY set to `true` when ALL above subtasks are complete
+3. **refactor**: Refactor complex logic, improve code quality
+4. **qualityCheck**: Run comprehensive quality checks (type-check, tests, lint)
+5. **verifyWorking**: Verify actual functionality works with manual testing
+6. **verified**: ONLY set to `true` when ALL above subtasks are complete
 
 **The story is NOT fully complete until `verified: true` is set.**
 
@@ -52,9 +53,11 @@ Story from prd.json
        ↓
    Subtask 2: removeComments (clean up comments)
        ↓
-   Subtask 3: qualityCheck (run type-check, tests, lint)
+   Subtask 3: refactor (improve code quality)
        ↓
-   Subtask 4: verifyWorking (test actual functionality)
+   Subtask 4: qualityCheck (run type-check, tests, lint)
+       ↓
+   Subtask 5: verifyWorking (test actual functionality)
        ↓
    Update prd.json: verified: true + all subtask flags
        ↓
@@ -286,14 +289,22 @@ After implementation, mark story with `"passes": true`:
 - Remove TODO/FIXME comments (document in progress.txt if needed)
 - Keep only comments explaining "why", not "what"
 
-#### 8c. qualityCheck
+#### 8c. refactor
+- Simplify complex conditionals
+- Extract repeated patterns into helper functions
+- Improve variable names for clarity
+- Consolidate similar functions
+- Remove redundant type assertions
+- Optimize database queries (if applicable)
+
+#### 8d. qualityCheck
 ```powershell
 npm run type-check  # Must pass
 npm test           # All tests must pass
 npm run lint       # (if configured)
 ```
 
-#### 8d. verifyWorking
+#### 8e. verifyWorking
 - Test actual functionality (endpoints, services, database operations)
 - Verify error cases
 - Verify integration with existing code
@@ -308,8 +319,9 @@ Set all subtask flags and `verified: true`:
   "passes": true,
   "removeDeadCode": true,     // Subtask 1 complete
   "removeComments": true,     // Subtask 2 complete
-  "qualityCheck": true,       // Subtask 3 complete
-  "verifyWorking": true,      // Subtask 4 complete
+  "refactor": true,           // Subtask 3 complete
+  "qualityCheck": true,       // Subtask 4 complete
+  "verifyWorking": true,      // Subtask 5 complete
   "verified": true            // ALL subtasks complete
 }
 ```
@@ -320,6 +332,7 @@ Append verification details to progress.txt:
 [TIMESTAMP] STORY_ID verified
 - Dead code removed: [list what was removed]
 - Comments cleaned: [count removed]
+- Refactoring: [list what was refactored]
 - Quality checks: PASSED (type-check, tests)
 - Verification results: [list what was tested and confirmed working]
 ```
@@ -328,7 +341,7 @@ Append verification details to progress.txt:
 After subtasks are complete, prd.json is updated, and progress.txt is written:
 ```powershell
 git add prd.json progress.txt [other modified files]
-git commit -m "feat: [STORY_ID] verified - removeDeadCode, removeComments, qualityCheck, verifyWorking"
+git commit -m "feat: [STORY_ID] verified - removeDeadCode, removeComments, refactor, qualityCheck, verifyWorking"
 ```
 
 ## Code Patterns for This Project
@@ -480,8 +493,9 @@ Each story in prd.json has a two-phase completion workflow:
   "passes": true,              // Phase 1 complete
   "removeDeadCode": false,     // Subtask 1: Remove unused code
   "removeComments": false,     // Subtask 2: Remove unnecessary comments
-  "qualityCheck": false,       // Subtask 3: Run full quality checks
-  "verifyWorking": false,      // Subtask 4: Verify functionality works
+  "refactor": false,           // Subtask 3: Refactor code for quality
+  "qualityCheck": false,       // Subtask 4: Run full quality checks
+  "verifyWorking": false,      // Subtask 5: Verify functionality works
   "verified": false            // Phase 2: Set true ONLY when all subtasks complete
 }
 ```
@@ -497,6 +511,7 @@ Each story in prd.json has a two-phase completion workflow:
   "priority": 1,
   "removeDeadCode": true,      // ✓ Dead code removed
   "removeComments": true,      // ✓ Comments cleaned
+  "refactor": true,            // ✓ Code refactored
   "qualityCheck": true,        // ✓ Tests passing
   "verifyWorking": true,       // ✓ Functionality verified
   "verified": true             // ✓ FULLY COMPLETE - can move to next story
@@ -506,6 +521,7 @@ Each story in prd.json has a two-phase completion workflow:
 **Verification Flags:**
 - `removeDeadCode: true` - Unused imports, functions, variables removed
 - `removeComments: true` - Unnecessary comments removed
+- `refactor: true` - Complex logic simplified, patterns extracted
 - `qualityCheck: true` - TypeScript, tests, lint all passing
 - `verifyWorking: true` - Actual functionality tested and working
 - `verified: true` - **ONLY set when ALL above are true**
@@ -554,6 +570,7 @@ You are DONE with this iteration when BOTH phases are complete:
 **REQUIRED before moving to next story:**
 - [ ] **removeDeadCode**: Dead code removed (unused imports, functions, variables)
 - [ ] **removeComments**: Unnecessary comments removed
+- [ ] **refactor**: Code refactored (complex logic simplified, patterns extracted)
 - [ ] **qualityCheck**: Full quality checks passed (type-check, tests, lint)
 - [ ] **verifyWorking**: Functionality verified with actual testing
   - [ ] Endpoints tested with actual requests (if applicable)
