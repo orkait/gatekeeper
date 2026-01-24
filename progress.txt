@@ -35,3 +35,11 @@
 - sessions: id, user_id, tenant_id, service, refresh_token_hash, device_info, ip_address, expires_at, UNIQUE(user_id, tenant_id, service)
 - Proper indexes on all frequently queried columns
 - Migration runs without errors locally
+
+[2026-01-24] SCHEMA-002 completed
+- Created migrations/0003_api_keys_usage.sql
+- api_keys: id, tenant_id, key_hash, key_prefix, name, scopes (JSON), quota_limit, quota_period (hour/day/month), status, created_by, last_used_at, expires_at, revoked_at
+- usage_events: id, tenant_id, api_key_id, user_id, service, action, quantity, period, timestamp, idempotency_key (UNIQUE)
+- Indexes on: tenant_id, key_hash, key_prefix, status, created_by, expires_at for api_keys
+- Indexes on: tenant_id, api_key_id, user_id, service, period, timestamp, idempotency_key, (tenant_id, period) for usage_events
+- Migration runs without errors locally

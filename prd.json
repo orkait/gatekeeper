@@ -27,7 +27,7 @@
         "Proper indexes on frequently queried columns",
         "Migration runs without errors"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 2
     },
     {
