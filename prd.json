@@ -39,11 +39,11 @@
       ],
       "passes": true,
       "priority": 1,
-      "qualityCheck": false,
+      "qualityCheck": true,
       "refactor": false,
-      "removeDeadCode": false,
-      "removeComments": false,
-      "verifyWorking": false,
+      "removeDeadCode": true,
+      "removeComments": true,
+      "verifyWorking": true,
       "verified": true
     },
     {
@@ -63,7 +63,7 @@
       "removeDeadCode": false,
       "removeComments": false,
       "verifyWorking": false,
-      "verified": true
+      "verified": false
     },
     {
       "id": "SCHEMA-003",
