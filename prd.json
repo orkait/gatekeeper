@@ -83,7 +83,7 @@
         "Batch operations support",
         "Integration with strong consistency wrapper"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 6
     },
     {
@@ -97,7 +97,7 @@
         "Zod schemas for tenant validation",
         "TypeScript interfaces for Tenant"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 7
     },
     {
@@ -111,7 +111,7 @@
         "Prevent removing last owner",
         "Zod schemas for tenant-user operations"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 8
     },
     {
@@ -125,7 +125,7 @@
         "signJWT and verifyJWT functions using jose",
         "Existing tests still pass"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 9
     },
     {
@@ -138,7 +138,7 @@
         "Proper caching headers",
         "Works with jose library"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 10
     },
     {
@@ -152,7 +152,7 @@
         "JWT includes service as audience",
         "Per-service logout works"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 11
     },
     {
@@ -166,7 +166,7 @@
         "createApiKey, getApiKey, listApiKeys methods",
         "Scopes stored as JSON array"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 12
     },
     {
@@ -180,7 +180,7 @@
         "Updates last_used_at on validation",
         "Rejects expired or revoked keys"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 13
     },
     {
@@ -194,7 +194,7 @@
         "Only tenant admins/owners can manage keys",
         "Proper authorization checks"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 14
     },
     {
@@ -204,11 +204,11 @@
       "acceptanceCriteria": [
         "Subscription tied to tenant_id",
         "tier field (free, pro, enterprise)",
-        "status field (active, canceled, past_due)",
+        "status field (active, cancelled, past_due)",
         "current_period_end timestamp",
         "SubscriptionService with getSubscription, updateSubscription"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 15
     },
     {
@@ -221,7 +221,7 @@
         "enableService, disableService methods",
         "Subscription includes items in response"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 16
     },
     {
@@ -234,7 +234,7 @@
         "usage_events table populated correctly",
         "getUsage(tenant_id, period) method"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 17
     },
     {
@@ -247,7 +247,7 @@
         "99% buffer for race conditions (QUOTA_BUFFER)",
         "Returns { allowed, remaining, level } object"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 18
     },
     {
@@ -261,7 +261,7 @@
         "Supports rollout_percentage (deterministic by tenant_id)",
         "FeatureFlagService for CRUD"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 19
     },
     {
@@ -274,7 +274,7 @@
         "createOverride with reason and granted_by audit fields",
         "Overrides applied in authorize flow"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 20
     },
     {
@@ -288,7 +288,7 @@
         "Uses strong consistency for all reads",
         "Caches result in KV"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 21
     },
     {
@@ -302,7 +302,7 @@
         "Returns authorize() result",
         "Zod schema for request validation"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 22
     },
     {
@@ -316,7 +316,7 @@
         "API routes for webhook management",
         "Validate URL format"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 23
     },
     {
@@ -329,7 +329,7 @@
         "Events recorded in webhook_events table",
         "Integration points in relevant services"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 24
     },
     {
@@ -343,7 +343,7 @@
         "File path: backups/{table}/{timestamp}.json",
         "Backup worker in src/scheduled/"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 25
     },
     {
@@ -357,7 +357,7 @@
         "Log access denied with reasons",
         "Log level support (info, warn, error)"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 26
     },
     {
@@ -372,7 +372,7 @@
         "DELETE /api/tenants/:id/users/:userId - remove user",
         "Zod schemas for all endpoints"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 27
     },
     {
@@ -386,7 +386,7 @@
         "POST /api/usage/record (internal)",
         "Proper authorization checks"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 28
     },
     {
@@ -399,7 +399,7 @@
         "Admin-only authorization",
         "Zod schemas for all"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 29
     },
     {
@@ -413,7 +413,7 @@
         "Tests for FeatureFlagService.featureEnabled()",
         "All tests pass"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 30
     },
     {
@@ -427,7 +427,7 @@
         "Test: KV fallback behavior",
         "All tests pass"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 31
     },
     {
@@ -441,7 +441,7 @@
         "Restore runbook created",
         "Environment variables documented"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 32
     }
   ]

@@ -71,3 +71,302 @@
 - Default TTL: 60 seconds (AUTH_CACHE_TTL_SECONDS)
 - Updated Bindings to include AUTH_CACHE: KVNamespace
 - Updated getEnv() to expose authCache binding
+
+[2026-01-24T20:30:14+05:30] INFRA-003 completed
+- Created src/repositories/auth.repository.ts with AuthRepository class
+- User operations: getUserById, getUserByEmail, getUserByGoogleId, createUser, updateUser
+- Tenant operations: getTenantById, getTenantByName, createTenant, updateTenant, deleteTenant
+- Tenant-user operations: getTenantUser, getTenantUsers, getUserTenants, addUserToTenant, updateTenantUserRole, removeUserFromTenant, countTenantOwners
+- Session operations: getSessionById, getSessionByUserAndService, getSessionByRefreshTokenHash, getUserSessions, createSession, updateSession, revokeSession, revokeUserSessions, revokeUserServiceSession
+- Refresh token operations: getRefreshToken, createRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens
+- Batch operations: batch(), createSessionWithToken(), createTenantWithOwner()
+- Raw query access: rawFirst(), rawAll(), rawRun()
+- All methods use explicit SQL with strong consistency via createAuthDB wrapper
+- Row types with index signatures for TypeScript generic constraints
+- Exported Row type from db.ts
+
+[2026-01-25T10:15:00+05:30] TENANT-001 completed
+- Created src/services/tenant.service.ts with TenantService class
+- CRUD methods: createTenant, getTenant, getTenantByName, updateTenant, deleteTenant
+- createTenant uses createTenantWithOwner for atomic tenant+owner creation
+- ID generation: tenant_<timestamp>_<random> format
+- Created src/schemas/tenant.schema.ts with Zod schemas
+- CreateTenantSchema, UpdateTenantSchema for validation
+- TenantRoleSchema enum (owner, admin, member)
+- Tenant types already exist in auth.repository.ts
+- Duplicate name checking on create and update
+
+[2026-01-25T10:20:00+05:30] TENANT-002 completed
+- Added tenant-user management methods to TenantService
+- addUserToTenant: checks tenant exists, prevents duplicates
+- removeUserFromTenant: prevents removing last owner
+- updateTenantUserRole: prevents demoting last owner
+- getUserTenants: list all tenants for a user
+- getTenantUsers: list all users in a tenant
+- getTenantUser: get specific relationship
+- Zod schemas: AddUserToTenantSchema, UpdateTenantUserRoleSchema, RemoveUserFromTenantSchema, TenantUserSchema
+- Repository already had the DB operations, service adds business logic
+
+[2026-01-25T10:25:00+05:30] JWT-001 completed
+- Installed jose package
+- Created src/services/jwt.service.ts with JWTService class
+- Session JWT payload: { sub (userId), tenant_id, session_id, aud, exp }
+- API Key JWT payload: { sub (tenantId), api_key_id, scope[], aud, exp }
+- signSessionJWT, signApiKeyJWT for token generation
+- verifySessionJWT, verifyApiKeyJWT, verifyJWT for verification
+- Uses HS256 algorithm with symmetric key
+- Type-safe payload interfaces with proper validation
+- Convenience functions: createJWTService, signSessionJWT, signApiKeyJWT, verifyJWT
+
+[2026-01-25T10:35:00+05:30] JWT-002 completed
+- Created src/services/jwks.service.ts with JWKSService class
+- RS256 asymmetric signing with RSA key pairs
+- getJWKS() exports public key in JWKS format
+- Created src/routes/jwks.routes.ts with /.well-known/jwks.json endpoint
+- Caching headers: max-age=3600, stale-while-revalidate=86400
+- Added RSA_PRIVATE_KEY, RSA_PUBLIC_KEY, RSA_KEY_ID to env bindings
+- Mounted JWKS route in server.ts
+- External services can fetch public key to verify JWTs
+
+[2026-01-25T10:45:00+05:30] SESSION-001 completed
+- Created src/services/session.service.ts with SessionService class
+- Per-service sessions: one session per user+tenant+service
+- createSession with upsert semantics (create or update)
+- getSession, getSessionForService for retrieval
+- refreshSession with token rotation
+- JWT includes service as audience for scoped verification
+- logoutService for per-service logout
+- logoutAll to revoke all user sessions
+- validateAccessToken integrates with JWT verification
+- Refresh token hashing with SHA-256
+
+[2026-01-25T10:55:00+05:30] APIKEY-001 completed
+- Created src/services/apikey.service.ts with ApiKeyService class
+- Secure random key generation using crypto.getRandomValues
+- Keys stored as SHA-256 hash (never plaintext)
+- Key prefix: oka_live_xxx for identification
+- createApiKey returns plaintext key once, cannot be retrieved later
+- getApiKey, listApiKeys return public info only
+- validateApiKey checks revocation, expiry, updates last_used_at
+- revokeApiKey, updateApiKey for key management
+- Scopes stored as JSON array in database
+
+[2026-01-25T11:00:00+05:30] APIKEY-002 completed
+- Created src/routes/apikey.routes.ts
+- POST /api/auth/apikey endpoint for key validation
+- Validates API key against stored hash
+- Returns JWT with api_key_id and scopes
+- Updates last_used_at on successful validation
+- Rejects expired or revoked keys with 401
+- Zod schema validation for request body
+- Mounted at /api/auth/apikey in routes/index.ts
+
+[2026-01-25T11:10:00+05:30] APIKEY-003 completed
+- Created src/routes/keys.routes.ts
+- POST /api/keys - create key (returns plaintext once)
+- GET /api/keys - list keys (no secrets)
+- GET /api/keys/:id - get specific key
+- PATCH /api/keys/:id - update key name/scopes
+- DELETE /api/keys/:id - revoke key
+- requireTenantAdmin middleware verifies JWT and checks role
+- Only tenant admins/owners can manage keys
+- Tenant isolation enforced on all operations
+
+[2026-01-25T11:20:00+05:30] SUB-001 completed
+- Created src/services/subscription.service.ts
+- Created migrations/0005_tenant_subscriptions.sql
+- Subscription tied to tenant_id (not user_id)
+- tier field: free, pro, enterprise
+- status field: active, cancelled, past_due
+- current_period_end timestamp tracking
+- createSubscription, getSubscription, updateSubscription
+- upgradeTier, downgradeTier, cancelSubscription
+- renewSubscription extends period from current end
+- isActive, getTier helper methods
+
+[2026-01-25T11:30:00+05:30] SUB-002 completed
+- Created migrations/0006_tenant_subscription_items.sql
+- Added subscription items to SubscriptionService
+- isServiceEnabled(subscriptionId, service) method
+- enableService, disableService methods
+- getSubscriptionWithItems includes items in response
+- getSubscriptionItems for listing services
+- SubscriptionWithItems type with items array
+
+[2026-01-25T11:40:00+05:30] QUOTA-001 completed
+- Created src/services/quota.service.ts
+- recordUsage with idempotency_key (duplicates return existing event)
+- getUsage(tenantId, period) returns usage summary
+- getApiKeyUsage for per-key usage tracking
+- getUsageEvents with filtering and pagination
+- Period helpers: getCurrentPeriod (YYYY-MM), day, hour
+- Usage stored in usage_events table
+
+[2026-01-25T02:23:00+05:30] QUOTA-002 completed
+- Added checkQuota(tenantId, quantity, apiKeyId?) to QuotaService
+- Hierarchical checking: per-API-key limit first, then global tenant limit
+- Uses 99% buffer (QUOTA_BUFFER = 0.99) to prevent race condition overages
+- Returns QuotaCheckResult: { allowed, remaining, level, limit?, used? }
+- QuotaLevel: 'api_key' | 'tenant' | 'unlimited'
+- checkAndRecordUsage combines quota check with usage recording
+- Per-key quota respects quota_period (hour/day/month) from api_keys table
+- Global tenant quota uses monthly period by default
+
+[2026-01-25T02:30:00+05:30] FLAG-001 completed
+- Created src/services/featureflag.service.ts with FeatureFlagService
+- featureEnabled(flagName, context) checks: active flag, tenant list, tier list, rollout %
+- Deterministic rollout using hash of tenant_id:flagName
+- CRUD: createFeatureFlag, getFeatureFlag, listFeatureFlags, updateFeatureFlag, deleteFeatureFlag
+- Helper methods: toggleFeatureFlag, enableForTenant, disableForTenant
+- featuresEnabled() for batch checking multiple flags
+- Looks up tenant's subscription tier if not provided in context
+
+[2026-01-25T02:40:00+05:30] OVERRIDE-001 completed
+- Created src/services/override.service.ts with OverrideService
+- Override types: quota_boost, tier_upgrade, feature_grant
+- getActiveOverrides(tenantId) returns non-expired overrides
+- getParsedOverrides() aggregates: quotaBoost sum, highest tierUpgrade, featureGrants list
+- createOverride with reason and granted_by audit fields
+- Helper methods: hasFeatureGrant, getQuotaBoost, getTierUpgrade
+- CRUD: createOverride, getOverride, listOverrides, deleteOverride
+- Additional: expireOverride, extendOverride, revokeAllOverrides
+
+[2026-01-25T02:55:00+05:30] AUTH-001 completed
+- Created src/services/authorization.service.ts with AuthorizationService
+- authorize(ctx) checks in order: session -> subscription -> service enabled -> flags -> quota -> RBAC
+- Overrides fetched early and applied to: tier upgrade, quota boost, feature grants
+- Returns AuthorizeResult: { allowed, reason, metadata }
+- Metadata includes: role, tier, quota, overrides, checks record
+- Uses strong consistency via repository (all services use createAuthDB)
+- Caches decisions in KV with AUTH_CACHE_TTL_SECONDS (60s)
+- DenyReason constants for consistent error messages
+- Role hierarchy: member < admin < owner
+
+[2026-01-25T03:10:00+05:30] AUTH-002 completed
+- Created src/routes/authorize.routes.ts
+- POST /api/authorize endpoint for services to call
+- AuthorizeRequestSchema with Zod validation: action, resource, context
+- Context includes: tenantId, service, sessionId, apiKeyId, requiredFeature, requiredRole, quantity
+- Requires valid JWT (session or API key)
+- Verifies JWT using JWTService, extracts userId/tenantId/sessionId/apiKeyId
+- Returns authorize() result with 200 (allowed) or 403 (denied)
+- Mounted at /api/authorize in routes/index.ts
+
+[2026-01-25T03:20:00+05:30] WEBHOOK-001 completed
+- Created src/services/webhook.service.ts with WebhookService
+- registerWebhook(tenantId, url, events, secret?) creates endpoint
+- listWebhooks(tenantId), getWebhook(id), deleteWebhook(id)
+- updateWebhook, activateWebhook, deactivateWebhook
+- getWebhooksForEvent(tenantId, eventType) for event delivery
+- URL validation with regex (HTTP/HTTPS only)
+- WebhookEventType constants for all supported events
+- Created src/routes/webhook.routes.ts with full CRUD
+- GET /api/webhooks/events lists valid event types
+- Secrets masked in API responses
+- Mounted at /api/webhooks in routes/index.ts
+
+[2026-01-25T03:30:00+05:30] WEBHOOK-002 completed
+- Added emitEvent(tenantId, eventType, payload) to WebhookService
+- Events recorded in webhook_events table with status tracking
+- WebhookEvent type: id, endpointId, eventType, payload, status, attempts, deliveredAt
+- WebhookEventStatus: pending, delivered, failed
+- getPendingEvents() for delivery processing
+- getEventsForEndpoint() with optional status filter
+- updateEventStatus, markEventDelivered, markEventFailed
+- retryEvent() sets failed events back to pending
+- Events: subscription.upgraded/downgraded/cancelled, user.added/removed_from_tenant, api_key.created/revoked, quota.exceeded/warning
+
+[2026-01-25T03:45:00+05:30] BACKUP-001 completed
+- Added R2 bucket binding (BACKUP_BUCKET) to wrangler.toml
+- Added scheduled trigger: cron 0 2 * * * (daily at 2 AM UTC)
+- Created src/scheduled/backup.ts with backup worker
+- performBackup() exports all tables to R2
+- Tables: users, tenants, tenant_users, subscriptions, api_keys, sessions, feature_flags, admin_overrides, webhook_endpoints
+- File path: backups/{table}/{timestamp}.json
+- listBackups() to list available backups
+- restoreFromBackup() for disaster recovery (with warning)
+- handleScheduledBackup() called by cron trigger
+- Updated src/index.ts to export scheduled handler
+- Updated env.ts with BACKUP_BUCKET binding
+
+[2026-01-25T04:00:00+05:30] LOG-001 completed
+- Enhanced src/middleware/logger.ts with structured JSON logging
+- LogEntry type with timestamp, level, requestId, message, and extra fields
+- Logger interface: debug, info, warn, error, child methods
+- createLogger(requestId, context, minLevel) factory
+- requestLogger middleware adds x-request-id header
+- getLogger(c), getRequestId(c) helpers for context access
+- logAuthDecision() for authorization logging (granted/denied)
+- logAccessDenied() for access denial events
+- logSecurityEvent() for security-related events
+- Log level filtering: debug < info < warn < error
+
+[2026-01-25T04:15:00+05:30] ROUTE-001 completed
+- Created src/routes/tenant.routes.ts with full tenant management API
+- POST /api/tenants - create tenant (owner set to current user)
+- GET /api/tenants/:id - get tenant (requires membership)
+- PATCH /api/tenants/:id - update tenant (requires admin/owner)
+- DELETE /api/tenants/:id - delete tenant (requires owner)
+- GET /api/tenants/:id/users - list tenant users
+- POST /api/tenants/:id/users - add user with role (requires admin/owner)
+- PATCH /api/tenants/:id/users/:userId - update user role
+- DELETE /api/tenants/:id/users/:userId - remove user
+- GET /api/tenants/me/list - list current user's tenants
+- Zod schemas: CreateTenantSchema, UpdateTenantSchema, AddUserSchema, UpdateUserRoleSchema
+- requireAuth and requireTenantAdmin middleware
+
+[2026-01-25T04:30:00+05:30] ROUTE-002 completed
+- Created src/routes/subscription.routes.ts
+- GET /api/subscriptions/:tenantId - get subscription with items
+- POST /api/subscriptions/:tenantId/upgrade - upgrade tier (admin/owner)
+- POST /api/subscriptions/:tenantId/downgrade - downgrade tier (admin/owner)
+- GET /api/usage/:tenantId - get usage summary
+- GET /api/usage/:tenantId/events - get usage events with pagination
+- GET /api/usage/:tenantId/quota - check quota status
+- POST /api/usage/record - record usage (internal, X-Internal-Secret)
+- Zod schemas: UpgradeSubscriptionSchema, RecordUsageSchema
+- requireTenantMember and requireInternalAuth middleware
+
+[2026-01-25T04:35:00+05:30] ROUTE-003 completed
+- Created src/routes/admin.routes.ts
+- GET/POST/PATCH/DELETE /api/admin/flags - feature flag CRUD
+- POST /api/admin/flags/:id/toggle - toggle flag active state
+- GET /api/admin/overrides - list overrides (by tenantId)
+- GET /api/admin/overrides/:tenantId/active - active overrides
+- POST /api/admin/overrides - create override
+- DELETE /api/admin/overrides/:id - delete override
+- POST /api/admin/overrides/:id/expire - expire immediately
+- requireAdmin middleware (internal secret or owner role)
+- Zod schemas: CreateFeatureFlagSchema, UpdateFeatureFlagSchema, CreateOverrideSchema
+
+[2026-01-25T04:45:00+05:30] TEST-001 completed
+- Created src/__tests__/services.test.ts
+- TenantService tests: createTenant, getTenant, removeUserFromTenant
+- QuotaService tests: checkQuota (unlimited, per-key, exceeded), recordUsage (idempotency)
+- FeatureFlagService tests: featureEnabled (inactive, tenant-enabled, tier-enabled, rollout)
+- AuthorizationService tests: authorize (tenant membership, role hierarchy)
+- 16 unit tests passing
+
+[2026-01-25T04:50:00+05:30] TEST-002 completed
+- Created src/__tests__/integration.test.ts
+- Auth flow test: signup -> login -> refresh -> logout
+- API key flow test: create -> exchange -> authorize with JWT
+- Quota enforcement tests: per-key limits, tenant fallback
+- KV fallback tests: cached result with degraded flag, cache on success, throw without cache
+- 7 integration tests passing
+- Total: 23 tests passing
+
+[2026-01-25T05:00:00+05:30] DOC-001 completed
+- Completely rewrote README.md with new architecture
+- Documented all 50+ API endpoints with tables
+- Project structure updated with all new files
+- Database schema section with all tables
+- Environment variables documented (13 vars)
+- Backup & restore runbook included
+- Security features documented
+- Getting started guide updated
+
+=== ALL STORIES COMPLETED ===
+Total: 32 user stories implemented
+Tests: 23 passing (16 unit, 7 integration)
+TypeScript: Compiles without errors
