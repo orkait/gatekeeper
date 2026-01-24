@@ -79,11 +79,12 @@
       ],
       "passes": true,
       "priority": 3,
-      "qualityCheck": false,
-      "refactor": false,
-      "removeDeadCode": false,
-      "removeComments": false,
-      "verifyWorking": false
+      "qualityCheck": true,
+      "refactor": true,
+      "removeDeadCode": true,
+      "removeComments": true,
+      "verifyWorking": true,
+      "verified": true
     },
     {
       "id": "INFRA-001",
