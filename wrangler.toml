@@ -17,6 +17,15 @@ database_id = "00000000-0000-0000-0000-000000000000"  # Replace after: wrangler 
 binding = "AUTH_CACHE"
 id = "00000000000000000000000000000000"  # Replace after: wrangler kv:namespace create AUTH_CACHE
 
+# R2 Bucket for backups
+[[r2_buckets]]
+binding = "BACKUP_BUCKET"
+bucket_name = "orkait-auth-backups"  # Create via: wrangler r2 bucket create orkait-auth-backups
+
+# Scheduled triggers for backups (daily at 2 AM UTC)
+[triggers]
+crons = ["0 2 * * *"]
+
 # Production Environment
 [vars]
 ENVIRONMENT = "production"
