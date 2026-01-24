@@ -1,5 +1,5 @@
-import type { AuthRepository, Tenant } from '../repositories/auth.repository';
-import type { CreateTenantInput, UpdateTenantInput } from '../schemas/tenant.schema';
+import type { AuthRepository, Tenant, TenantUser } from '../repositories/auth.repository';
+import type { CreateTenantInput, UpdateTenantInput, AddUserToTenantInput, UpdateTenantUserRoleInput } from '../schemas/tenant.schema';
 import type { ServiceResult } from '../types';
 
 /**
@@ -109,6 +109,135 @@ export class TenantService {
 
         await this.repository.deleteTenant(id);
         return { success: true };
+    }
+
+    // ========================================================================
+    // Tenant-User Operations
+    // ========================================================================
+
+    /**
+     * Add a user to a tenant with a specified role.
+     */
+    async addUserToTenant(
+        input: AddUserToTenantInput
+    ): Promise<ServiceResult<TenantUser>> {
+        // Verify tenant exists
+        const tenant = await this.repository.getTenantById(input.tenantId);
+        if (!tenant) {
+            return { success: false, error: 'Tenant not found' };
+        }
+
+        // Check if user is already a member
+        const existing = await this.repository.getTenantUser(input.tenantId, input.userId);
+        if (existing) {
+            return { success: false, error: 'User is already a member of this tenant' };
+        }
+
+        await this.repository.addUserToTenant(input.tenantId, input.userId, input.role);
+
+        const tenantUser = await this.repository.getTenantUser(input.tenantId, input.userId);
+        return { success: true, data: tenantUser! };
+    }
+
+    /**
+     * Remove a user from a tenant.
+     * Prevents removing the last owner.
+     */
+    async removeUserFromTenant(
+        tenantId: string,
+        userId: string
+    ): Promise<ServiceResult<void>> {
+        // Verify tenant exists
+        const tenant = await this.repository.getTenantById(tenantId);
+        if (!tenant) {
+            return { success: false, error: 'Tenant not found' };
+        }
+
+        // Check if user is a member
+        const tenantUser = await this.repository.getTenantUser(tenantId, userId);
+        if (!tenantUser) {
+            return { success: false, error: 'User is not a member of this tenant' };
+        }
+
+        // Prevent removing the last owner
+        if (tenantUser.role === 'owner') {
+            const ownerCount = await this.repository.countTenantOwners(tenantId);
+            if (ownerCount <= 1) {
+                return { success: false, error: 'Cannot remove the last owner of a tenant' };
+            }
+        }
+
+        await this.repository.removeUserFromTenant(tenantId, userId);
+        return { success: true };
+    }
+
+    /**
+     * Update a user's role in a tenant.
+     * Prevents demoting the last owner.
+     */
+    async updateTenantUserRole(
+        input: UpdateTenantUserRoleInput
+    ): Promise<ServiceResult<TenantUser>> {
+        // Verify tenant exists
+        const tenant = await this.repository.getTenantById(input.tenantId);
+        if (!tenant) {
+            return { success: false, error: 'Tenant not found' };
+        }
+
+        // Check if user is a member
+        const tenantUser = await this.repository.getTenantUser(input.tenantId, input.userId);
+        if (!tenantUser) {
+            return { success: false, error: 'User is not a member of this tenant' };
+        }
+
+        // Prevent demoting the last owner
+        if (tenantUser.role === 'owner' && input.role !== 'owner') {
+            const ownerCount = await this.repository.countTenantOwners(input.tenantId);
+            if (ownerCount <= 1) {
+                return { success: false, error: 'Cannot demote the last owner of a tenant' };
+            }
+        }
+
+        await this.repository.updateTenantUserRole(input.tenantId, input.userId, input.role);
+
+        const updated = await this.repository.getTenantUser(input.tenantId, input.userId);
+        return { success: true, data: updated! };
+    }
+
+    /**
+     * Get all tenants a user belongs to.
+     */
+    async getUserTenants(userId: string): Promise<ServiceResult<TenantUser[]>> {
+        const tenantUsers = await this.repository.getUserTenants(userId);
+        return { success: true, data: tenantUsers };
+    }
+
+    /**
+     * Get all users in a tenant.
+     */
+    async getTenantUsers(tenantId: string): Promise<ServiceResult<TenantUser[]>> {
+        // Verify tenant exists
+        const tenant = await this.repository.getTenantById(tenantId);
+        if (!tenant) {
+            return { success: false, error: 'Tenant not found' };
+        }
+
+        const tenantUsers = await this.repository.getTenantUsers(tenantId);
+        return { success: true, data: tenantUsers };
+    }
+
+    /**
+     * Get a specific tenant-user relationship.
+     */
+    async getTenantUser(
+        tenantId: string,
+        userId: string
+    ): Promise<ServiceResult<TenantUser>> {
+        const tenantUser = await this.repository.getTenantUser(tenantId, userId);
+        if (!tenantUser) {
+            return { success: false, error: 'User is not a member of this tenant' };
+        }
+        return { success: true, data: tenantUser };
     }
 
     /**
