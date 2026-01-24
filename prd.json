@@ -2,6 +2,27 @@
   "name": "orka-auth-control-plane",
   "description": "A serverless control plane that centralizes authentication, per-service sessions, subscriptions, quotas, and authorization decisions for multi-service products.",
   "branch": "main",
+  "cleanupFields": {
+    "description": "Optional cleanup fields for each story to enable code quality improvements",
+    "fields": {
+      "cleanup": "boolean - Enable full cleanup phase after implementation",
+      "cleanupTasks": "array - Specific cleanup tasks: ['removeDeadCode', 'refactorLogic', 'removeComments', 'verifyWorking']",
+      "refactor": "boolean - Enable logic refactoring",
+      "removeDeadCode": "boolean - Remove unused imports, functions, variables",
+      "removeComments": "boolean - Remove unnecessary comments",
+      "verifyWorking": "boolean - Verify functionality works (manual testing)",
+      "cleaned": "boolean - Set to true after cleanup is performed"
+    },
+    "example": {
+      "id": "STORY-XXX",
+      "cleanup": true,
+      "cleanupTasks": ["removeDeadCode", "refactorLogic", "removeComments", "verifyWorking"],
+      "refactor": true,
+      "removeDeadCode": true,
+      "removeComments": true,
+      "verifyWorking": true
+    }
+  },
   "userStories": [
     {
       "id": "SCHEMA-001",
