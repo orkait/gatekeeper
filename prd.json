@@ -58,12 +58,12 @@
       ],
       "passes": true,
       "priority": 2,
-      "qualityCheck": false,
-      "refactor": false,
-      "removeDeadCode": false,
-      "removeComments": false,
-      "verifyWorking": false,
-      "verified": false
+      "qualityCheck": true,
+      "refactor": true,
+      "removeDeadCode": true,
+      "removeComments": true,
+      "verifyWorking": true,
+      "verified": true
     },
     {
       "id": "SCHEMA-003",
