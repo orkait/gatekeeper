@@ -3,9 +3,67 @@
 You are operating in an autonomous development loop. Each iteration you:
 1. Complete ONE user story from `prd.json`
 2. Run quality checks
-3. Commit changes
-4. Update `prd.json` status
-5. Log learnings to `progress.txt`
+3. Mark story as `passes: true`
+4. **THEN complete verification subtasks BEFORE moving to next story**
+5. Commit changes
+6. Update `prd.json` status with `verified: true`
+7. Log learnings to `progress.txt`
+
+## IMPORTANT: Two-Phase Story Completion
+
+### Phase 1: Implementation (marks `passes: true`)
+- Implement the story
+- Run basic quality checks (type-check, tests)
+- Commit implementation
+- Mark story with `"passes": true` in prd.json
+
+### Phase 2: Verification (marks `verified: true`)
+**BEFORE moving to the next story, complete ALL verification subtasks:**
+1. **removeDeadCode**: Remove unused imports, functions, variables
+2. **removeComments**: Remove unnecessary comments
+3. **qualityCheck**: Run comprehensive quality checks (type-check, tests, lint)
+4. **verifyWorking**: Verify actual functionality works with manual testing
+5. **verified**: ONLY set to `true` when ALL above subtasks are complete
+
+**The story is NOT fully complete until `verified: true` is set.**
+
+## Workflow Diagram
+
+```
+Story from prd.json
+       ↓
+[Phase 1: Implementation]
+       ↓
+   Implement code
+       ↓
+   Run type-check
+       ↓
+   Run tests
+       ↓
+   Commit: "feat: STORY_ID implementation"
+       ↓
+   Mark: passes: true
+       ↓
+[Phase 2: Verification] ← REQUIRED before next story
+       ↓
+   Subtask 1: removeDeadCode
+       ↓
+   Subtask 2: removeComments
+       ↓
+   Subtask 3: qualityCheck
+       ↓
+   Subtask 4: verifyWorking
+       ↓
+   Commit: "feat: STORY_ID verified"
+       ↓
+   Mark: verified: true, removeDeadCode: true, removeComments: true, qualityCheck: true, verifyWorking: true
+       ↓
+   Log to progress.txt
+       ↓
+[Story Fully Complete] ← ONLY NOW can move to next story
+       ↓
+Next Story (repeat)
+```
 
 ## Your Context
 
@@ -194,28 +252,72 @@ If verification was performed:
 git commit -m "feat: [STORY_ID] <brief description> + verified"
 ```
 
-### 7. Update prd.json
-Read the current prd.json, find the story by ID, set `"passes": true`:
+### 7. Update prd.json (Phase 1: Implementation)
+After implementation, mark story with `"passes": true`:
 
-```typescript
-// In prd.json, update the story:
+```json
 {
   "id": "STORY_ID",
   "title": "...",
-  "passes": true,  // <-- set this to true
-  "cleaned": true,  // <-- set this if cleanup was performed
-  "verified": true  // <-- set this if verification was performed
+  "passes": true,  // <-- set this after implementation
+  "verified": false  // <-- NOT verified yet
 }
 ```
 
-### 8. Log to progress.txt
+### 8. Complete Verification Subtasks (Phase 2: REQUIRED)
+**BEFORE moving to next story, complete ALL verification subtasks:**
+
+#### 8a. removeDeadCode
+- Remove unused imports
+- Remove unused functions
+- Remove unused variables
+- Remove commented-out code
+
+#### 8b. removeComments
+- Remove obvious comments that restate code
+- Remove TODO/FIXME comments (document in progress.txt if needed)
+- Keep only comments explaining "why", not "what"
+
+#### 8c. qualityCheck
+```powershell
+npm run type-check  # Must pass
+npm test           # All tests must pass
+npm run lint       # (if configured)
+```
+
+#### 8d. verifyWorking
+- Test actual functionality (endpoints, services, database operations)
+- Verify error cases
+- Verify integration with existing code
+- Verify security checks
+
+#### 8e. Update prd.json with `verified: true`
+Only after ALL subtasks are complete:
+```json
+{
+  "id": "STORY_ID",
+  "title": "...",
+  "passes": true,
+  "verified": true,  // <-- set this ONLY after all verification subtasks complete
+  "removeDeadCode": true,
+  "removeComments": true,
+  "qualityCheck": true,
+  "verifyWorking": true
+}
+```
+
+### 9. Log to progress.txt
 Append learnings to progress.txt:
 ```
-[TIMESTAMP] STORY_ID completed
+[TIMESTAMP] STORY_ID implemented
 - What was implemented
 - Any issues encountered
-- Patterns discovered
-- Cleanup performed: [list what was cleaned]
+
+[TIMESTAMP] STORY_ID verified
+- Dead code removed: [list]
+- Comments cleaned: [count]
+- Quality checks: PASSED
+- Verification results: [list what was tested]
 ```
 
 ## Code Patterns for This Project
@@ -342,38 +444,62 @@ const schema = z.object({
 - [ ] No console.log or debug statements left
 - [ ] No TODO/FIXME comments (unless documented in progress.txt)
 
-## PRD.json Cleanup Fields
+## PRD.json Story Status Fields
 
-Each story in prd.json can have cleanup-related fields:
+Each story in prd.json has a two-phase completion workflow:
 
+### Phase 1: Implementation Status
 ```json
 {
   "id": "STORY-001",
   "title": "...",
   "description": "...",
   "acceptanceCriteria": [...],
-  "passes": false,
-  "priority": 1,
-  "cleanup": true,                    // Enable cleanup phase
-  "cleanupTasks": [                   // Specific cleanup tasks
-    "removeDeadCode",
-    "refactorLogic",
-    "removeComments",
-    "verifyWorking"
-  ],
-  "refactor": true,                   // Enable refactoring
-  "removeDeadCode": true,             // Remove unused code
-  "verifyWorking": true               // Verify functionality works
+  "passes": false,  // Set to true after implementation
+  "priority": 1
 }
 ```
 
-**Cleanup Flags:**
-- `cleanup: true` - Enable full cleanup phase
-- `cleanupTasks: []` - Array of specific cleanup tasks to perform
-- `refactor: true` - Rewrite logic in better way
-- `removeDeadCode: true` - Remove unused imports, functions, variables
-- `removeComments: true` - Remove unnecessary comments
-- `verifyWorking: true` - Verify the actual thing works (manual testing)
+### Phase 2: Verification Status (REQUIRED)
+**After `passes: true`, complete these verification subtasks:**
+
+```json
+{
+  "id": "STORY-001",
+  "passes": true,              // Phase 1 complete
+  "removeDeadCode": false,     // Subtask 1: Remove unused code
+  "removeComments": false,     // Subtask 2: Remove unnecessary comments
+  "qualityCheck": false,       // Subtask 3: Run full quality checks
+  "verifyWorking": false,      // Subtask 4: Verify functionality works
+  "verified": false            // Phase 2: Set true ONLY when all subtasks complete
+}
+```
+
+### Complete Example
+```json
+{
+  "id": "STORY-001",
+  "title": "Implement user authentication",
+  "description": "...",
+  "acceptanceCriteria": [...],
+  "passes": true,              // Implementation done
+  "priority": 1,
+  "removeDeadCode": true,      // ✓ Dead code removed
+  "removeComments": true,      // ✓ Comments cleaned
+  "qualityCheck": true,        // ✓ Tests passing
+  "verifyWorking": true,       // ✓ Functionality verified
+  "verified": true             // ✓ FULLY COMPLETE - can move to next story
+}
+```
+
+**Verification Flags:**
+- `removeDeadCode: true` - Unused imports, functions, variables removed
+- `removeComments: true` - Unnecessary comments removed
+- `qualityCheck: true` - TypeScript, tests, lint all passing
+- `verifyWorking: true` - Actual functionality tested and working
+- `verified: true` - **ONLY set when ALL above are true**
+
+**CRITICAL RULE: Do NOT move to the next story until `verified: true` is set.**
 
 ## Important Rules
 
@@ -403,22 +529,31 @@ orka-auth/
 
 ## Exit Condition
 
-You are DONE with this iteration when:
+You are DONE with this iteration when BOTH phases are complete:
+
+### Phase 1: Implementation Complete (marks `passes: true`)
 - [ ] Story implementation complete
 - [ ] TypeScript compiles without errors
 - [ ] Tests pass (or no breaking changes)
-- [ ] **Cleanup phase completed** (if `cleanup: true` or cleanup flags set)
-  - [ ] Dead code removed
-  - [ ] Logic refactored (if needed)
-  - [ ] Unnecessary comments removed
-- [ ] **Verification phase completed** (if `verifyWorking: true` or `qualityCheck: true`)
-  - [ ] Endpoints tested with actual requests
+- [ ] Changes committed to git
+- [ ] `prd.json` updated with `passes: true`
+- [ ] `progress.txt` updated with implementation details
+
+### Phase 2: Verification Complete (marks `verified: true`)
+**REQUIRED before moving to next story:**
+- [ ] **removeDeadCode**: Dead code removed (unused imports, functions, variables)
+- [ ] **removeComments**: Unnecessary comments removed
+- [ ] **qualityCheck**: Full quality checks passed (type-check, tests, lint)
+- [ ] **verifyWorking**: Functionality verified with actual testing
+  - [ ] Endpoints tested with actual requests (if applicable)
   - [ ] Error cases verified
   - [ ] Integration verified
   - [ ] Security checks verified
-- [ ] Changes committed to git
-- [ ] `prd.json` updated with `passes: true` (and `cleaned: true`, `verified: true` if applicable)
-- [ ] `progress.txt` updated with learnings
+- [ ] Changes committed to git (verification commit)
+- [ ] `prd.json` updated with `verified: true`
+- [ ] `progress.txt` updated with verification details
+
+**CRITICAL: A story is NOT complete until `verified: true` is set. Do NOT move to the next story until verification phase is done.**
 
 Then EXIT. The loop will start a fresh context for the next story.
 
