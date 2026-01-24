@@ -33,6 +33,35 @@ export interface WebhookEndpoint {
 }
 
 /**
+ * Webhook event status.
+ */
+export type WebhookEventStatus = 'pending' | 'delivered' | 'failed';
+
+/**
+ * Webhook event record.
+ */
+export interface WebhookEvent {
+    id: string;
+    endpointId: string;
+    eventType: string;
+    payload: Record<string, unknown>;
+    status: WebhookEventStatus;
+    attempts: number;
+    deliveredAt: number | null;
+    lastAttemptAt: number | null;
+    createdAt: number;
+}
+
+/**
+ * Input for emitting an event.
+ */
+export interface EmitEventInput {
+    tenantId: string;
+    eventType: string;
+    payload: Record<string, unknown>;
+}
+
+/**
  * Input for registering a webhook.
  */
 export interface RegisterWebhookInput {
@@ -65,6 +94,22 @@ interface WebhookEndpointRow {
     active: number;
     created_at: number;
     updated_at: number;
+}
+
+/**
+ * Database row for webhook_events table.
+ */
+interface WebhookEventRow {
+    [key: string]: unknown;
+    id: string;
+    endpoint_id: string;
+    event_type: string;
+    payload: string;
+    status: string;
+    attempts: number;
+    delivered_at: number | null;
+    last_attempt_at: number | null;
+    created_at: number;
 }
 
 /**
@@ -284,6 +329,188 @@ export class WebhookService {
     }
 
     // ========================================================================
+    // Event Emission
+    // ========================================================================
+
+    /**
+     * Emit a webhook event to all subscribed endpoints.
+     * Records the event in webhook_events table for each endpoint.
+     *
+     * @param input - Event details (tenantId, eventType, payload)
+     * @returns List of created webhook events
+     */
+    async emitEvent(input: EmitEventInput): Promise<ServiceResult<WebhookEvent[]>> {
+        // Get all active webhooks subscribed to this event
+        const webhooksResult = await this.getWebhooksForEvent(input.tenantId, input.eventType);
+        if (!webhooksResult.success || !webhooksResult.data) {
+            return { success: false, error: webhooksResult.error };
+        }
+
+        const webhooks = webhooksResult.data;
+        if (webhooks.length === 0) {
+            // No subscribers, return empty array
+            return { success: true, data: [] };
+        }
+
+        const now = Date.now();
+        const events: WebhookEvent[] = [];
+
+        // Create a webhook event for each subscribed endpoint
+        for (const webhook of webhooks) {
+            const event: WebhookEvent = {
+                id: this.generateId('we'),
+                endpointId: webhook.id,
+                eventType: input.eventType,
+                payload: input.payload,
+                status: 'pending',
+                attempts: 0,
+                deliveredAt: null,
+                lastAttemptAt: null,
+                createdAt: now,
+            };
+
+            await this.repository.rawRun(
+                `INSERT INTO webhook_events (id, endpoint_id, event_type, payload, status, attempts, delivered_at, last_attempt_at, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    event.id,
+                    event.endpointId,
+                    event.eventType,
+                    JSON.stringify(event.payload),
+                    event.status,
+                    event.attempts,
+                    event.deliveredAt,
+                    event.lastAttemptAt,
+                    event.createdAt,
+                ]
+            );
+
+            events.push(event);
+        }
+
+        return { success: true, data: events };
+    }
+
+    /**
+     * Get a webhook event by ID.
+     */
+    async getWebhookEvent(id: string): Promise<ServiceResult<WebhookEvent>> {
+        const row = await this.repository.rawFirst<WebhookEventRow>(
+            'SELECT * FROM webhook_events WHERE id = ?',
+            [id]
+        );
+
+        if (!row) {
+            return { success: false, error: 'Webhook event not found' };
+        }
+
+        return { success: true, data: this.mapEventRow(row) };
+    }
+
+    /**
+     * List pending webhook events (for delivery processing).
+     */
+    async getPendingEvents(limit: number = 100): Promise<ServiceResult<WebhookEvent[]>> {
+        const result = await this.repository.rawAll<WebhookEventRow>(
+            `SELECT * FROM webhook_events 
+             WHERE status = 'pending' 
+             ORDER BY created_at ASC 
+             LIMIT ?`,
+            [limit]
+        );
+
+        const events = result.results.map(row => this.mapEventRow(row));
+        return { success: true, data: events };
+    }
+
+    /**
+     * List events for an endpoint.
+     */
+    async getEventsForEndpoint(
+        endpointId: string,
+        options?: { status?: WebhookEventStatus; limit?: number }
+    ): Promise<ServiceResult<WebhookEvent[]>> {
+        const conditions = ['endpoint_id = ?'];
+        const params: unknown[] = [endpointId];
+
+        if (options?.status) {
+            conditions.push('status = ?');
+            params.push(options.status);
+        }
+
+        const limit = options?.limit ?? 100;
+        params.push(limit);
+
+        const result = await this.repository.rawAll<WebhookEventRow>(
+            `SELECT * FROM webhook_events 
+             WHERE ${conditions.join(' AND ')}
+             ORDER BY created_at DESC 
+             LIMIT ?`,
+            params
+        );
+
+        const events = result.results.map(row => this.mapEventRow(row));
+        return { success: true, data: events };
+    }
+
+    /**
+     * Update event status after delivery attempt.
+     */
+    async updateEventStatus(
+        id: string,
+        status: WebhookEventStatus,
+        incrementAttempts: boolean = true
+    ): Promise<ServiceResult<WebhookEvent>> {
+        const existing = await this.getWebhookEvent(id);
+        if (!existing.success || !existing.data) {
+            return { success: false, error: 'Webhook event not found' };
+        }
+
+        const now = Date.now();
+        const updates: string[] = ['status = ?', 'last_attempt_at = ?'];
+        const values: unknown[] = [status, now];
+
+        if (incrementAttempts) {
+            updates.push('attempts = attempts + 1');
+        }
+
+        if (status === 'delivered') {
+            updates.push('delivered_at = ?');
+            values.push(now);
+        }
+
+        values.push(id);
+
+        await this.repository.rawRun(
+            `UPDATE webhook_events SET ${updates.join(', ')} WHERE id = ?`,
+            values
+        );
+
+        return this.getWebhookEvent(id);
+    }
+
+    /**
+     * Mark event as delivered.
+     */
+    async markEventDelivered(id: string): Promise<ServiceResult<WebhookEvent>> {
+        return this.updateEventStatus(id, 'delivered', true);
+    }
+
+    /**
+     * Mark event as failed.
+     */
+    async markEventFailed(id: string): Promise<ServiceResult<WebhookEvent>> {
+        return this.updateEventStatus(id, 'failed', true);
+    }
+
+    /**
+     * Retry a failed event (set back to pending).
+     */
+    async retryEvent(id: string): Promise<ServiceResult<WebhookEvent>> {
+        return this.updateEventStatus(id, 'pending', false);
+    }
+
+    // ========================================================================
     // Validation Helpers
     // ========================================================================
 
@@ -330,6 +557,20 @@ export class WebhookService {
             active: row.active === 1,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
+        };
+    }
+
+    private mapEventRow(row: WebhookEventRow): WebhookEvent {
+        return {
+            id: row.id,
+            endpointId: row.endpoint_id,
+            eventType: row.event_type,
+            payload: JSON.parse(row.payload || '{}'),
+            status: row.status as WebhookEventStatus,
+            attempts: row.attempts,
+            deliveredAt: row.delivered_at,
+            lastAttemptAt: row.last_attempt_at,
+            createdAt: row.created_at,
         };
     }
 }
