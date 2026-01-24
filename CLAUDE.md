@@ -69,13 +69,7 @@ npm run lint
 - Remove TODO/FIXME comments if they're not actionable
 - Remove commented-out code blocks
 
-#### 4d. Verify Functionality
-- **Manual verification**: Test the actual endpoint/function works
-- **Integration check**: Ensure new code integrates with existing code
-- **Edge cases**: Verify error handling works
-- **Performance**: Check for obvious performance issues
-
-#### 4e. Code Quality Checks
+#### 4d. Code Quality Checks
 ```powershell
 # Check for unused exports
 npm run type-check  # Will catch unused imports in strict mode
@@ -114,7 +108,77 @@ Select-String -Path "src/**/*.ts" -Pattern "console\\.(log|debug|warn|error)" -R
 - [ ] Review comments - do they add value or just restate code?
 - [ ] Look for duplicate logic that could be extracted
 
-### 5. Commit Changes (if checks pass)
+### 5. Verification Layer (if `verifyWorking: true` or `qualityCheck: true`)
+**This phase runs AFTER cleanup and BEFORE commit. Verifies the implementation actually works.**
+
+#### 5a. Functional Verification
+- **Endpoint Testing**: Test each API endpoint with actual HTTP requests
+  ```powershell
+  # Example: Test POST /api/tenants
+  $body = @{ name = "Test Tenant"; globalQuotaLimit = 1000 } | ConvertTo-Json
+  Invoke-RestMethod -Uri "http://localhost:8787/api/tenants" -Method POST -Body $body -ContentType "application/json" -Headers @{ Authorization = "Bearer $token" }
+  ```
+- **Service Method Testing**: Verify service methods work correctly
+- **Database Operations**: Verify data is stored/retrieved correctly
+- **Error Handling**: Test error cases return proper status codes and messages
+
+#### 5b. Integration Verification
+- **Service Integration**: Ensure new code integrates with existing services
+- **Database Integration**: Verify queries work with actual D1 database
+- **Middleware Integration**: Verify middleware chain works correctly
+- **Route Integration**: Verify routes are properly mounted and accessible
+
+#### 5c. Edge Case Verification
+- **Invalid Input**: Test with invalid/malformed data
+- **Boundary Conditions**: Test with edge values (empty strings, null, max values)
+- **Concurrent Requests**: Verify no race conditions (if applicable)
+- **Error Scenarios**: Test all error paths return appropriate responses
+
+#### 5d. Performance Verification
+- **Response Times**: Check endpoints respond within acceptable time
+- **Database Queries**: Verify queries are optimized (no N+1 problems)
+- **Memory Usage**: Check for obvious memory leaks
+- **Caching**: Verify caching works as expected (if applicable)
+
+#### 5e. Security Verification
+- **Authentication**: Verify authentication is required where needed
+- **Authorization**: Verify role-based access control works
+- **Input Validation**: Verify Zod schemas reject invalid input
+- **SQL Injection**: Verify parameterized queries are used
+- **JWT Validation**: Verify JWT tokens are properly validated
+
+#### 5f. Verification Checklist
+- [ ] All endpoints respond correctly (tested with actual requests)
+- [ ] Error cases handled properly (tested invalid inputs)
+- [ ] Database operations work (data persists correctly)
+- [ ] Integration with existing code works (no breaking changes)
+- [ ] Edge cases handled (null, empty, boundary values)
+- [ ] Security checks in place (auth, authorization, validation)
+- [ ] Performance acceptable (no obvious bottlenecks)
+- [ ] Logging works (check logs for expected entries)
+
+#### 5g. Verification Commands
+```powershell
+# Start dev server
+npm run dev
+
+# Test health endpoint
+Invoke-RestMethod -Uri "http://localhost:8787/api/health"
+
+# Test with authentication (example)
+$token = "your-jwt-token"
+$headers = @{ Authorization = "Bearer $token" }
+Invoke-RestMethod -Uri "http://localhost:8787/api/tenants" -Headers $headers
+
+# Test error cases
+Invoke-RestMethod -Uri "http://localhost:8787/api/tenants/invalid-id" -Headers $headers
+# Should return 404 or appropriate error
+
+# Check database directly (if using local D1)
+wrangler d1 execute orkait_auth --local --command "SELECT * FROM tenants LIMIT 5"
+```
+
+### 6. Commit Changes (if checks pass)
 ```powershell
 git add -A
 git commit -m "feat: [STORY_ID] <brief description>"
@@ -125,7 +189,12 @@ If cleanup was performed:
 git commit -m "feat: [STORY_ID] <brief description> + cleanup"
 ```
 
-### 6. Update prd.json
+If verification was performed:
+```powershell
+git commit -m "feat: [STORY_ID] <brief description> + verified"
+```
+
+### 7. Update prd.json
 Read the current prd.json, find the story by ID, set `"passes": true`:
 
 ```typescript
@@ -134,11 +203,12 @@ Read the current prd.json, find the story by ID, set `"passes": true`:
   "id": "STORY_ID",
   "title": "...",
   "passes": true,  // <-- set this to true
-  "cleaned": true  // <-- set this if cleanup was performed
+  "cleaned": true,  // <-- set this if cleanup was performed
+  "verified": true  // <-- set this if verification was performed
 }
 ```
 
-### 7. Log to progress.txt
+### 8. Log to progress.txt
 Append learnings to progress.txt:
 ```
 [TIMESTAMP] STORY_ID completed
@@ -341,9 +411,13 @@ You are DONE with this iteration when:
   - [ ] Dead code removed
   - [ ] Logic refactored (if needed)
   - [ ] Unnecessary comments removed
-  - [ ] Functionality verified to work
+- [ ] **Verification phase completed** (if `verifyWorking: true` or `qualityCheck: true`)
+  - [ ] Endpoints tested with actual requests
+  - [ ] Error cases verified
+  - [ ] Integration verified
+  - [ ] Security checks verified
 - [ ] Changes committed to git
-- [ ] `prd.json` updated with `passes: true` (and `cleaned: true` if cleanup done)
+- [ ] `prd.json` updated with `passes: true` (and `cleaned: true`, `verified: true` if applicable)
 - [ ] `progress.txt` updated with learnings
 
 Then EXIT. The loop will start a fresh context for the next story.

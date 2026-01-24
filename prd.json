@@ -3,15 +3,17 @@
   "description": "A serverless control plane that centralizes authentication, per-service sessions, subscriptions, quotas, and authorization decisions for multi-service products.",
   "branch": "main",
   "cleanupFields": {
-    "description": "Optional cleanup fields for each story to enable code quality improvements",
+    "description": "Optional cleanup and verification fields for each story to enable code quality improvements",
     "fields": {
       "cleanup": "boolean - Enable full cleanup phase after implementation",
       "cleanupTasks": "array - Specific cleanup tasks: ['removeDeadCode', 'refactorLogic', 'removeComments', 'verifyWorking']",
       "refactor": "boolean - Enable logic refactoring",
       "removeDeadCode": "boolean - Remove unused imports, functions, variables",
       "removeComments": "boolean - Remove unnecessary comments",
-      "verifyWorking": "boolean - Verify functionality works (manual testing)",
-      "cleaned": "boolean - Set to true after cleanup is performed"
+      "qualityCheck": "boolean - Enable quality checks (type-check, tests, lint)",
+      "verifyWorking": "boolean - Enable verification layer (functional, integration, edge cases, security)",
+      "cleaned": "boolean - Set to true after cleanup is performed",
+      "verified": "boolean - Set to true after verification is performed"
     },
     "example": {
       "id": "STORY-XXX",
