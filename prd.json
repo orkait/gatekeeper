@@ -158,11 +158,12 @@
       ],
       "passes": true,
       "priority": 7,
-      "qualityCheck": false,
-      "refactor": false,
-      "removeDeadCode": false,
-      "removeComments": false,
-      "verifyWorking": false
+      "qualityCheck": true,
+      "refactor": true,
+      "removeDeadCode": true,
+      "removeComments": true,
+      "verifyWorking": true,
+      "verified": true
     },
     {
       "id": "TENANT-002",
@@ -177,11 +178,12 @@
       ],
       "passes": true,
       "priority": 8,
-      "qualityCheck": false,
-      "refactor": false,
-      "removeDeadCode": false,
-      "removeComments": false,
-      "verifyWorking": false
+      "qualityCheck": true,
+      "refactor": true,
+      "removeDeadCode": true,
+      "removeComments": true,
+      "verifyWorking": true,
+      "verified": true
     },
     {
       "id": "JWT-001",

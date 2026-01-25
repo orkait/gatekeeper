@@ -476,3 +476,28 @@ TypeScript: Compiles without errors
   - Typed with generics: UserRow→User, TenantRow→Tenant, etc.
   - Batch operations: batch(), createSessionWithToken(), createTenantWithOwner()
   - Integration: uses createAuthDB for strong consistency (first-primary session)
+
+[2026-01-25T17:40:00+05:30] TENANT-001 verified (Phase 2 complete)
+- removeDeadCode: All methods actively used ✓
+  - TenantService used in tenant.routes.ts and services.test.ts
+- removeComments: Comments explain WHY (hard delete note, business logic) ✓
+- refactor: Code is clean with clear ServiceResult pattern ✓
+- qualityCheck: TypeScript compiles without errors, all 23 tests passing ✓
+- verifyWorking: Implementation verified ✓
+  - TenantService class in src/services/tenant.service.ts
+  - CRUD methods: createTenant, getTenant, getTenantByName, updateTenant, deleteTenant
+  - ID format: tenant_<timestamp>_<random>
+  - Zod schemas: CreateTenantSchema, UpdateTenantSchema, TenantSchema
+  - Tenant interface in auth.repository.ts
+
+[2026-01-25T17:40:00+05:30] TENANT-002 verified (Phase 2 complete)
+- removeDeadCode: All methods actively used ✓
+- removeComments: Comments explain business logic (preventing last owner removal) ✓
+- refactor: Consistent ServiceResult pattern ✓
+- qualityCheck: TypeScript compiles without errors, all 23 tests passing ✓
+- verifyWorking: Implementation verified ✓
+  - addUserToTenant, removeUserFromTenant methods with validation
+  - getUserTenants, getTenantUsers, getTenantUser methods
+  - Role management: TenantRoleSchema with owner/admin/member
+  - Last owner protection: countTenantOwners check before removal/demotion
+  - Zod schemas: AddUserToTenantSchema, UpdateTenantUserRoleSchema, RemoveUserFromTenantSchema, TenantUserSchema
