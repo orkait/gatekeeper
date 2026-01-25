@@ -1,14 +1,17 @@
 # Ralph Loop - Autonomous AI Development Loop
-# Runs Crush iteratively until all stories in prd.json are complete.
+# Runs Claude or Crush iteratively until all stories in prd.json are complete.
 #
 # Usage: 
-#   .\ralph.ps1                      # verbose by default
-#   .\ralph.ps1 -Silent              # hide crush output
+#   .\ralph.ps1                      # uses claude by default
+#   .\ralph.ps1 -CLI crush           # use crush instead
+#   .\ralph.ps1 -Silent              # hide output
 #   .\ralph.ps1 -MaxIterations 10    # limit iterations
 
 param(
     [int]$MaxIterations = 100,
-    [switch]$Silent
+    [switch]$Silent,
+    [ValidateSet("claude", "crush")]
+    [string]$CLI = "claude"
 )
 
 $separator = "=" * 60
@@ -16,6 +19,7 @@ $separator = "=" * 60
 Write-Host "`n$separator" -ForegroundColor Cyan
 Write-Host "  RALPH LOOP - Autonomous AI Development" -ForegroundColor Cyan
 Write-Host "$separator" -ForegroundColor Cyan
+Write-Host "  CLI:            $CLI"
 Write-Host "  Max iterations: $MaxIterations"
 Write-Host "  Verbose:        $(-not $Silent)"
 Write-Host "  PRD:            prd.json"
@@ -53,20 +57,28 @@ for ($i = 1; $i -le $MaxIterations; $i++) {
     }
     Write-Host "$separator`n" -ForegroundColor Blue
     
-    # Run Crush for one story
+    # Run CLI for one story
     $prompt = "Do the next incomplete story from prd.json per CLAUDE.md instructions. Exit when done with ONE story."
     
     if ($Silent) {
-        Write-Host "[Running Crush silently...]" -ForegroundColor DarkGray
-        crush run $prompt *> $null
+        Write-Host "[Running $CLI silently...]" -ForegroundColor DarkGray
+        if ($CLI -eq "claude") {
+            claude --print $prompt *> $null
+        } else {
+            crush run $prompt *> $null
+        }
     } else {
-        Write-Host "[Crush Output]`n" -ForegroundColor Magenta
-        crush run $prompt
+        Write-Host "[$CLI Output]`n" -ForegroundColor Magenta
+        if ($CLI -eq "claude") {
+            claude --print $prompt
+        } else {
+            crush run $prompt
+        }
         Write-Host ""
     }
     
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "`nCrush exited with error (code: $LASTEXITCODE). Stopping." -ForegroundColor Red
+        Write-Host "`n$CLI exited with error (code: $LASTEXITCODE). Stopping." -ForegroundColor Red
         break
     }
     
