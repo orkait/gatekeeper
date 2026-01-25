@@ -3,7 +3,6 @@ export {
     createAuthCache,
     withCacheFallback,
     buildCacheKey,
-    isDegraded,
     CacheKeyPrefix,
     AUTH_CACHE_TTL_SECONDS,
     type AuthCache,

@@ -175,18 +175,11 @@ export async function withCacheFallback<T>(
 
 /**
  * Builds a cache key from components.
- * 
+ *
  * @example
  * buildCacheKey(CacheKeyPrefix.SESSION, tenantId, sessionId)
  * // Returns: "session:tenant_123:sess_456"
  */
 export function buildCacheKey(...parts: string[]): string {
     return parts.join(':');
-}
-
-/**
- * Type guard to check if a result is degraded.
- */
-export function isDegraded<T>(result: CachedResult<T>): boolean {
-    return result.degraded === true;
 }
