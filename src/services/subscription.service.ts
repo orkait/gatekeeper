@@ -9,7 +9,7 @@ export type SubscriptionTier = 'free' | 'pro' | 'enterprise';
 /**
  * Subscription status.
  */
-export type SubscriptionStatus = 'active' | 'canceled' | 'past_due';
+export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due';
 
 /**
  * Subscription record.
@@ -22,7 +22,7 @@ export interface Subscription {
     currentPeriodEnd: number;
     createdAt: number;
     updatedAt: number;
-    canceledAt: number | null;
+    cancelledAt: number | null;
 }
 
 /**
@@ -74,7 +74,7 @@ interface SubscriptionRow {
     current_period_end: number;
     created_at: number;
     updated_at: number;
-    canceled_at: number | null;
+    cancelled_at: number | null;
 }
 
 /**
@@ -127,11 +127,11 @@ export class SubscriptionService {
             currentPeriodEnd: now + periodDays * 24 * 60 * 60 * 1000,
             createdAt: now,
             updatedAt: now,
-            canceledAt: null,
+            cancelledAt: null,
         };
 
         await this.repository.rawRun(
-            `INSERT INTO tenant_subscriptions (id, tenant_id, tier, status, current_period_end, created_at, updated_at, canceled_at)
+            `INSERT INTO tenant_subscriptions (id, tenant_id, tier, status, current_period_end, created_at, updated_at, cancelled_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 subscription.id,
@@ -141,7 +141,7 @@ export class SubscriptionService {
                 subscription.currentPeriodEnd,
                 subscription.createdAt,
                 subscription.updatedAt,
-                subscription.canceledAt,
+                subscription.cancelledAt,
             ]
         );
 
@@ -204,8 +204,8 @@ export class SubscriptionService {
             fields.push('status = ?');
             values.push(input.status);
 
-            if (input.status === 'canceled') {
-                fields.push('canceled_at = ?');
+            if (input.status === 'cancelled') {
+                fields.push('cancelled_at = ?');
                 values.push(now);
             }
         }
@@ -280,7 +280,7 @@ export class SubscriptionService {
      * Cancel subscription.
      */
     async cancelSubscription(tenantId: string): Promise<ServiceResult<Subscription>> {
-        return this.updateSubscription(tenantId, { status: 'canceled' });
+        return this.updateSubscription(tenantId, { status: 'cancelled' });
     }
 
     /**
@@ -492,7 +492,7 @@ export class SubscriptionService {
             currentPeriodEnd: row.current_period_end,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
-            canceledAt: row.canceled_at,
+            cancelledAt: row.cancelled_at,
         };
     }
 

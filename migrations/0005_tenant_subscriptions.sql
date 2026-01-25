@@ -5,11 +5,11 @@ CREATE TABLE IF NOT EXISTS tenant_subscriptions (
     id TEXT PRIMARY KEY,
     tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     tier TEXT NOT NULL DEFAULT 'free' CHECK(tier IN ('free', 'pro', 'enterprise')),
-    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'canceled', 'past_due')),
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'cancelled', 'past_due')),
     current_period_end INTEGER NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
     updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    canceled_at INTEGER,
+    cancelled_at INTEGER,
     UNIQUE(tenant_id)
 );
 
