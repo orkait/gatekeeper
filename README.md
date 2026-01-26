@@ -328,13 +328,67 @@ await restoreFromBackup(bucket, db, 'backups/users/2026-01-25T02-00-00-000Z.json
 
 ## Testing
 
-```bash
-# Run all tests
-npm test
+Comprehensive test suite with Vitest covering services, repositories, adapters, and integration flows.
 
-# Run with coverage
+### Quick Start
+
+```bash
+# Run all tests in watch mode (development)
+npm test -- --watch
+
+# Run all tests once
+npm run test:run
+
+# Run with coverage report
 npm run test:coverage
+
+# Run specific test file
+npm test src/services/__tests__/tenant.service.test.ts
+
+# Type check
+npm run type-check
 ```
+
+### Test Structure
+
+```
+src/
+├── __tests__/
+│   ├── helpers/            # Mock factories and fixtures
+│   ├── integration.test.ts # Cross-service tests
+│   └── services.test.ts    # Service layer tests
+└── services/
+    └── __tests__/
+        └── *.test.ts       # Unit tests co-located with code
+```
+
+### Current Coverage
+
+```
+Overall: 33.49% (Target: 75%)
+Services: 32.06%
+  - TenantService: 53.65% ✅
+  - QuotaService: 52%
+  - Utils: 80% ✅
+```
+
+### Documentation
+
+- **[VITEST_SETUP.md](./VITEST_SETUP.md)** - Setup summary and getting started
+- **[TESTING.md](./TESTING.md)** - Comprehensive testing strategy
+- **[TEST_PLAN.md](./TEST_PLAN.md)** - Phased implementation plan
+- **[TESTING_QUICKREF.md](./TESTING_QUICKREF.md)** - Quick reference guide
+
+### Test Priorities
+
+**HIGH PRIORITY** (Start here):
+1. AuthService - Core authentication
+2. SessionService - Session management
+3. JWTService - Token handling
+4. QuotaService - Usage tracking
+5. AuthorizationService - Permissions
+
+See [TEST_PLAN.md](./TEST_PLAN.md) for complete implementation roadmap.
 
 ## Security
 

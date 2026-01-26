@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { AuthService } from "../services/auth.service";
+import type { AuthService } from "../services/auth";
 
 export interface AuthContext {
     userId: string;
@@ -19,10 +19,18 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
     const payload = await authService.verifyAccessToken(token);
 
     if (!payload) {
-        throw new HTTPException(401, { message: "Invalid or expired token" });
+        throw new HTTPException(401, {
+            message: "Invalid or expired token"
+        });
     }
 
-    c.set("auth", { userId: payload.sub, email: payload.email } as AuthContext);
+    c.set(
+        "auth",
+        {
+            userId: payload.sub,
+            email: payload.email
+        } as AuthContext
+    );
     await next();
 }
 

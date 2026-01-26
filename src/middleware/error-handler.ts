@@ -35,7 +35,6 @@ export function errorHandler(err: Error, c: Context): Response {
     }
 
     console.error("Unhandled error:", err);
-
     return c.json<ErrorResponse>(
         { success: false, error: "Internal server error", timestamp, path },
         500

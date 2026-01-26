@@ -1,0 +1,1719 @@
+{
+	"info": {
+		"_postman_id": "orkait-auth-collection",
+		"name": "Orkait Auth - Core Identity System",
+		"description": "Complete API collection for Orkait Auth service - a serverless control plane for authentication, sessions, tenants, and authorization.\n\n## Getting Started\n\n1. Start the dev server: `npm run dev`\n2. Import this collection and the environment file\n3. Run the \"Complete E2E Flow\" folder in order to test the full flow\n\n## Authentication\n\nMost endpoints require a Bearer token. After login/signup, the access token is automatically saved to the environment.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health & Info",
+			"item": [
+				{
+					"name": "Root Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": ["{{baseUrl}}"],
+							"path": [""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has status ok\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"ok\");",
+									"    pm.expect(jsonData.service).to.eql(\"orkait-auth\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "JWKS Public Keys",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 503\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Response has keys array\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData).to.have.property(\"keys\");",
+									"        pm.expect(jsonData.keys).to.be.an(\"array\");",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/.well-known/jwks.json",
+							"host": ["{{baseUrl}}"],
+							"path": [".well-known", "jwks.json"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Signup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has success true\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Response has tokens\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property(\"accessToken\");",
+									"    pm.expect(jsonData.data).to.have.property(\"refreshToken\");",
+									"    pm.expect(jsonData.data).to.have.property(\"user\");",
+									"});",
+									"",
+									"// Save tokens and user data",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"    pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    pm.environment.set(\"userId\", jsonData.data.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{userEmail}}\",\n    \"password\": \"{{userPassword}}\",\n    \"name\": \"{{userName}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/signup",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "signup"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success true\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Response has tokens\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property(\"accessToken\");",
+									"    pm.expect(jsonData.data).to.have.property(\"refreshToken\");",
+									"    pm.expect(jsonData.data).to.have.property(\"user\");",
+									"});",
+									"",
+									"// Save tokens and user data",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"    pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"    pm.environment.set(\"userId\", jsonData.data.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{userEmail}}\",\n    \"password\": \"{{userPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has new tokens\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"accessToken\");",
+									"    pm.expect(jsonData.data).to.have.property(\"refreshToken\");",
+									"});",
+									"",
+									"// Save new tokens",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"    pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "refresh"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.include(\"Logged out\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "logout"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout All Devices",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.include(\"all devices\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout-all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "logout-all"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Google Auth (Placeholder)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// This will fail without a valid Google ID token",
+									"pm.test(\"Returns 401 for invalid token\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"idToken\": \"your-google-id-token-here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/google",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "google"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenants",
+			"item": [
+				{
+					"name": "Create Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has tenant data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"id\");",
+									"    pm.expect(jsonData.data).to.have.property(\"name\");",
+									"});",
+									"",
+									"// Save tenant ID",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set(\"tenantId\", jsonData.data.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{tenantName}}\",\n    \"globalQuotaLimit\": 10000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has tenant data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"id\");",
+									"    pm.expect(jsonData.data).to.have.property(\"name\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List My Tenants",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has tenants array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/me/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "me", "list"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has updated tenant\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"name\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{tenantName}} - Updated\",\n    \"globalQuotaLimit\": 20000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.include(\"deleted\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenant Users",
+			"item": [
+				{
+					"name": "List Tenant Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has users array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}", "users"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add User to Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 or 400\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+									"});",
+									"",
+									"if (pm.response.code === 201) {",
+									"    pm.test(\"Response has user data\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.success).to.eql(true);",
+									"        pm.expect(jsonData.data).to.have.property(\"role\");",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": \"{{secondUserId}}\",\n    \"role\": \"member\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}", "users"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 400\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Response has updated role\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.success).to.eql(true);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users/{{secondUserId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}", "users", "{{secondUserId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove User from Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 400\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Response has success message\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.success).to.eql(true);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users/{{secondUserId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}", "users", "{{secondUserId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "API Keys",
+			"item": [
+				{
+					"name": "Create API Key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has API key data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"id\");",
+									"    pm.expect(jsonData.data).to.have.property(\"key\");",
+									"});",
+									"",
+									"// Save API key",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set(\"apiKeyId\", jsonData.data.id);",
+									"    pm.environment.set(\"apiKeySecret\", jsonData.data.key);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "X-Tenant-ID",
+								"value": "{{tenantId}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test API Key\",\n    \"scopes\": [\"read\", \"write\"],\n    \"quotaLimit\": 1000,\n    \"quotaPeriod\": \"day\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/keys",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "keys"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List API Keys",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has keys array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "X-Tenant-ID",
+								"value": "{{tenantId}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/keys",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "keys"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get API Key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has key data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"id\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "X-Tenant-ID",
+								"value": "{{tenantId}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/keys/{{apiKeyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "keys", "{{apiKeyId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update API Key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has updated key\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "X-Tenant-ID",
+								"value": "{{tenantId}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated API Key Name\",\n    \"scopes\": [\"read\", \"write\", \"delete\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/keys/{{apiKeyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "keys", "{{apiKeyId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke API Key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.message).to.include(\"revoked\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "X-Tenant-ID",
+								"value": "{{tenantId}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/keys/{{apiKeyId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "keys", "{{apiKeyId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Authorization",
+			"item": [
+				{
+					"name": "Authorize Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 403\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+									"});",
+									"",
+									"pm.test(\"Response has authorization result\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"allowed\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"read\",\n    \"resource\": \"documents\",\n    \"context\": {\n        \"tenantId\": \"{{tenantId}}\",\n        \"service\": \"api\",\n        \"requiredRole\": \"member\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/authorize",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "authorize"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Complete E2E Flow",
+			"item": [
+				{
+					"name": "1. Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Health check passed\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"ok\");",
+									"});",
+									"",
+									"console.log(\"✅ Health check passed\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Signup New User",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate unique email for this test run",
+									"var timestamp = Date.now();",
+									"pm.environment.set(\"userEmail\", \"e2e_\" + timestamp + \"@test.com\");",
+									"pm.environment.set(\"tenantName\", \"E2E Test Tenant \" + timestamp);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Signup successful\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.accessToken).to.be.a(\"string\");",
+									"    pm.expect(jsonData.data.refreshToken).to.be.a(\"string\");",
+									"    pm.expect(jsonData.data.user.email).to.eql(pm.environment.get(\"userEmail\"));",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"pm.environment.set(\"userId\", jsonData.data.user.id);",
+									"",
+									"console.log(\"✅ User signed up: \" + jsonData.data.user.email);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{userEmail}}\",\n    \"password\": \"{{userPassword}}\",\n    \"name\": \"E2E Test User\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/signup",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "signup"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Token refresh successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.accessToken).to.be.a(\"string\");",
+									"    pm.expect(jsonData.data.refreshToken).to.be.a(\"string\");",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"",
+									"console.log(\"✅ Token refreshed successfully\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "refresh"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. Create Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tenant created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.name).to.include(\"E2E Test Tenant\");",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"tenantId\", jsonData.data.id);",
+									"",
+									"console.log(\"✅ Tenant created: \" + jsonData.data.name);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{tenantName}}\",\n    \"globalQuotaLimit\": 10000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. List My Tenants",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tenants listed\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"    pm.expect(jsonData.data.length).to.be.at.least(1);",
+									"});",
+									"",
+									"console.log(\"✅ Found \" + pm.response.json().data.length + \" tenant(s)\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/me/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "me", "list"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6. Get Tenant Details",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tenant details retrieved\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"tenantId\"));",
+									"});",
+									"",
+									"console.log(\"✅ Tenant details retrieved\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. List Tenant Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tenant users listed\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.be.an(\"array\");",
+									"    pm.expect(jsonData.data.length).to.be.at.least(1);",
+									"    pm.expect(jsonData.data[0].role).to.eql(\"owner\");",
+									"});",
+									"",
+									"console.log(\"✅ Tenant has \" + pm.response.json().data.length + \" user(s)\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}", "users"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "8. Update Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tenant updated\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.globalQuotaLimit).to.eql(20000);",
+									"});",
+									"",
+									"console.log(\"✅ Tenant quota updated to 20000\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"globalQuotaLimit\": 20000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "9. Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Logout successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"console.log(\"✅ User logged out\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "logout"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "10. Login Again",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Login successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.user.email).to.eql(pm.environment.get(\"userEmail\"));",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"",
+									"console.log(\"✅ User logged back in\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{userEmail}}\",\n    \"password\": \"{{userPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "11. Delete Tenant (Cleanup)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tenant deleted\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"console.log(\"✅ Tenant deleted (cleanup)\");",
+									"console.log(\"\");",
+									"console.log(\"🎉 E2E FLOW COMPLETED SUCCESSFULLY!\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "{{tenantId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Error Cases",
+			"item": [
+				{
+					"name": "Invalid Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 401 for invalid credentials\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Response has error message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(false);",
+									"    pm.expect(jsonData.error).to.be.a(\"string\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"nonexistent@example.com\",\n    \"password\": \"wrongpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Missing Auth Header",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 401 for missing auth\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/me/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "me", "list"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 401 for invalid token\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer invalid.token.here"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/me/list",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "me", "list"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tenant Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 404 for non-existent tenant\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test(\"Response has error\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(false);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenants/nonexistent-tenant-id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "tenants", "nonexistent-tenant-id"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Signup - Short Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 400 for validation error\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"short\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/signup",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "signup"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Signup - Bad Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 400 for invalid email\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"not-an-email\",\n    \"password\": \"ValidPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/signup",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "signup"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

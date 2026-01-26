@@ -9,15 +9,42 @@
       "Bash(./node_modules/.bin/tsc:*)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "Bash(python ralph.py:*)"
+      "Bash(python ralph.py:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm test)",
+      "Bash(npm run test:run:*)",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; npx tsc --noEmit\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; npm run build\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; npm run test:run\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: [TENANT-001] Add TenantService with CRUD operations\n\n- TenantService with createTenant, getTenant, updateTenant, deleteTenant\n- Zod schemas for tenant validation \\(CreateTenantSchema, UpdateTenantSchema\\)\n- Tenant ID generation using tenant_xxx format\n- Integration with AuthRepository for strong consistency\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; npm install jose\")",
+      "Bash(npm show:*)",
+      "Bash(powershell -Command \"Get-Content C:\\\\codingFiles\\\\orkait\\\\orka-auth\\\\node_modules\\\\jose\\\\dist\\\\types\\\\index.d.ts | Select-Object -First 50\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; npm run type-check 2>&1\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; npm test 2>&1\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; git add prd.json progress.txt; git commit -m ''feat: INFRA-002 verified - removeDeadCode, removeComments, refactor, qualityCheck, verifyWorking\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>''\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; git add prd.json progress.txt; git commit -m ''feat: INFRA-003 verified - removeDeadCode, removeComments, refactor, qualityCheck, verifyWorking\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>''\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; git add prd.json progress.txt; git commit -m 'feat: TENANT-001, TENANT-002 verified - removeDeadCode, removeComments, refactor, qualityCheck, verifyWorking\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>'\":*)",
+      "Bash(npx vitest:*)",
+      "Bash(find:*)",
+      "Bash(npx wrangler:*)",
+      "Bash(node:*)",
+      "Bash(cmd.exe /c \"npx wrangler d1 execute orkait_auth --local --file migrations/0007_optimize_indexes.sql\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --file migrations/0007_optimize_indexes.sql\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --command \"\"SELECT name, tbl_name FROM sqlite_master WHERE type=''index'' AND name LIKE ''idx_%'' ORDER BY tbl_name, name\"\"\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --command \"\"EXPLAIN QUERY PLAN SELECT * FROM sessions WHERE user_id = ''test'' AND revoked_at IS NULL\"\"\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --command \"\"EXPLAIN QUERY PLAN SELECT * FROM refresh_tokens WHERE token_hash = ''test'' AND revoked_at IS NULL\"\"\")",
+      "Bash(powershell.exe -Command \"npm test\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --command \"\"CREATE INDEX IF NOT EXISTS idx_sessions_user_tenant_service_active ON sessions\\(user_id, tenant_id, service\\) WHERE revoked_at IS NULL\"\"\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --command \"\"CREATE INDEX IF NOT EXISTS idx_sessions_user_service_active ON sessions\\(user_id, service\\) WHERE revoked_at IS NULL\"\"\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --command \"\"EXPLAIN QUERY PLAN SELECT * FROM sessions WHERE user_id = ''u1'' AND tenant_id IS ''t1'' AND service = ''web'' AND revoked_at IS NULL\"\"\")",
+      "Bash(powershell.exe -Command \"npx wrangler d1 execute orkait_auth --local --command \"\"EXPLAIN QUERY PLAN SELECT * FROM sessions WHERE user_id = ''u1'' AND tenant_id IS NULL AND service = ''web'' AND revoked_at IS NULL\"\"\")",
+      "Bash(powershell.exe -Command \"npm run type-check\")",
+      "Bash(powershell.exe -Command \"npm run dev\")",
+      "Bash(curl:*)",
+      "Bash(powershell.exe:*)"
     ]
-  },
-
-  "env": {
-    "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
-    "ANTHROPIC_AUTH_TOKEN": "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",
-    "ANTHROPIC_API_KEY": ""  
+  }
 }
-}
-
-  

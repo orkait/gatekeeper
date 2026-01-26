@@ -1,13 +1,6 @@
-/**
- * Repository exports.
- *
- * Repositories provide typed database access with strong consistency
- * for auth-critical operations.
- */
-
-export { AuthRepository } from './auth.repository';
+export { AuthRepository } from './auth-repository';
 export type {
-    // Row types (for advanced use cases)
+    // Row types
     UserRow,
     TenantRow,
     TenantUserRow,
@@ -20,4 +13,11 @@ export type {
     Session,
     // Batch operation types
     BatchStatement,
-} from './auth.repository';
+} from './types';
+
+// Sub-repository exports
+export { UserRepository } from './users';
+export { TenantRepository } from './tenants';
+export { TenantUserRepository } from './tenant-users';
+export { SessionRepository } from './sessions';
+export { RefreshTokenRepository } from './tokens';

@@ -59,8 +59,8 @@ describe('Auth Flow Integration', () => {
 
     describe('Complete auth flow', () => {
         it('should handle signup -> login -> refresh -> logout', async () => {
-            const { SessionService } = await import('../services/session.service');
-            const { JWTService } = await import('../services/jwt.service');
+            const { SessionService } = await import('../services/session');
+            const { JWTService } = await import('../services/jwt');
 
             const jwtService = new JWTService('test-secret-key');
             const sessionService = new SessionService(mockRepo as any, jwtService);
@@ -142,8 +142,8 @@ describe('API Key Flow Integration', () => {
 
     describe('API key create -> exchange -> authorize', () => {
         it('should create API key and exchange for JWT', async () => {
-            const { ApiKeyService } = await import('../services/apikey.service');
-            const { JWTService } = await import('../services/jwt.service');
+            const { ApiKeyService } = await import('../services/apikey');
+            const { JWTService } = await import('../services/jwt');
 
             const apiKeyService = new ApiKeyService(mockRepo as any);
             const jwtService = new JWTService('test-secret-key');
@@ -222,7 +222,7 @@ describe('Quota Enforcement Integration', () => {
 
     describe('quota enforcement', () => {
         it('should enforce per-key quota limits', async () => {
-            const { QuotaService } = await import('../services/quota.service');
+            const { QuotaService } = await import('../services/quota');
             const quotaService = new QuotaService(mockRepo as any);
 
             // API key with 100 quota limit, 99 used (at buffer)
@@ -244,7 +244,7 @@ describe('Quota Enforcement Integration', () => {
         });
 
         it('should fall through to tenant quota when API key has no limit', async () => {
-            const { QuotaService } = await import('../services/quota.service');
+            const { QuotaService } = await import('../services/quota');
             const quotaService = new QuotaService(mockRepo as any);
 
             // API key without quota limit

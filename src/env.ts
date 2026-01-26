@@ -53,6 +53,7 @@ export type EnvConfig = ReturnType<typeof getEnv>;
 
 export function validateEnv(bindings: Partial<Bindings>): bindings is Bindings {
     const errors: string[] = [];
+    const warnings: string[] = [];
 
     if (!bindings.DB && bindings.ENVIRONMENT !== "test") {
         errors.push("Missing required binding: DB");
@@ -62,6 +63,15 @@ export function validateEnv(bindings: Partial<Bindings>): bindings is Bindings {
     }
     if (!bindings.INTERNAL_SECRET) {
         errors.push("Missing required secret: INTERNAL_SECRET");
+    }
+
+    // AUTH_CACHE is optional but recommended for performance
+    if (!bindings.AUTH_CACHE && bindings.ENVIRONMENT === "production") {
+        warnings.push("Missing optional binding: AUTH_CACHE (recommended for production performance)");
+    }
+
+    if (warnings.length > 0) {
+        console.warn("Environment warnings:", warnings.join(", "));
     }
 
     if (errors.length > 0) {

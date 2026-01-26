@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import { getEnv } from '../env';
-import { createJWKSService } from '../services/jwks.service';
+import { createJWKSService } from '../services/jwks';
 
 const jwksRoutes = new Hono<AppEnv>();
 

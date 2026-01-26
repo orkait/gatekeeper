@@ -1,13 +1,8 @@
 import type { Context, Next } from "hono";
 
-/**
- * Log levels.
- */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-/**
- * Structured log entry.
- */
+
 export interface LogEntry {
     timestamp: string;
     level: LogLevel;
@@ -16,9 +11,7 @@ export interface LogEntry {
     [key: string]: unknown;
 }
 
-/**
- * Logger interface for structured logging.
- */
+
 export interface Logger {
     debug(message: string, data?: Record<string, unknown>): void;
     info(message: string, data?: Record<string, unknown>): void;
@@ -27,9 +20,6 @@ export interface Logger {
     child(context: Record<string, unknown>): Logger;
 }
 
-/**
- * Log level priority for filtering.
- */
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
     debug: 0,
     info: 1,
@@ -37,9 +27,6 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
     error: 3,
 };
 
-/**
- * Create a structured logger instance.
- */
 export function createLogger(
     requestId: string,
     context: Record<string, unknown> = {},
@@ -61,7 +48,6 @@ export function createLogger(
             ...data,
         };
 
-        // Output as JSON
         console.log(JSON.stringify(entry));
     };
 
@@ -74,9 +60,7 @@ export function createLogger(
     };
 }
 
-/**
- * Generate a unique request ID.
- */
+
 function generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -90,22 +74,18 @@ function generateRequestId(): string {
  */
 export async function requestLogger(c: Context, next: Next) {
     const start = Date.now();
-    
-    // Get or generate request ID
+
     const requestId = c.req.header('x-request-id') || generateRequestId();
-    
-    // Create logger with request context
+
     const logger = createLogger(requestId, {
         method: c.req.method,
         path: c.req.path,
         userAgent: c.req.header('user-agent'),
     });
 
-    // Attach logger and requestId to context
     c.set('logger', logger);
     c.set('requestId', requestId);
 
-    // Log request start
     logger.info('Request started', {
         query: Object.fromEntries(new URL(c.req.url).searchParams),
     });
@@ -125,7 +105,6 @@ export async function requestLogger(c: Context, next: Next) {
     const duration = Date.now() - start;
     const status = c.res.status;
 
-    // Log request completion
     if (status >= 500) {
         logger.error('Request completed with server error', { status, duration });
     } else if (status >= 400) {
@@ -134,32 +113,21 @@ export async function requestLogger(c: Context, next: Next) {
         logger.info('Request completed', { status, duration });
     }
 
-    // Add request ID to response headers
     c.res.headers.set('x-request-id', requestId);
 }
 
-/**
- * Get logger from context.
- */
 export function getLogger(c: Context): Logger {
     const logger = c.get('logger') as Logger | undefined;
     if (!logger) {
-        // Fallback logger if middleware wasn't applied
-        return createLogger('unknown');
+        throw new Error('Logger not found in context');
     }
     return logger;
 }
 
-/**
- * Get request ID from context.
- */
 export function getRequestId(c: Context): string {
     return (c.get('requestId') as string) || 'unknown';
 }
 
-/**
- * Log an authorization decision.
- */
 export function logAuthDecision(
     logger: Logger,
     decision: {
@@ -181,9 +149,6 @@ export function logAuthDecision(
     }
 }
 
-/**
- * Log an access denied event with details.
- */
 export function logAccessDenied(
     logger: Logger,
     details: {
@@ -201,9 +166,6 @@ export function logAccessDenied(
     });
 }
 
-/**
- * Log a security event.
- */
 export function logSecurityEvent(
     logger: Logger,
     event: string,

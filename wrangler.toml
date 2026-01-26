@@ -9,13 +9,13 @@ compatibility_flags = ["nodejs_compat"]
 # D1 Database
 [[d1_databases]]
 binding = "DB"
-database_name = "orkait_auth"
-database_id = "00000000-0000-0000-0000-000000000000"  # Replace after: wrangler d1 create orkait_auth
+database_name = "orkait_identity_service"
+database_id = "b1d4f7ad-b6b1-47dc-8ed9-e8b52348a5f4"
 
 # KV Namespace for auth decision caching (fallback on D1 outage)
 [[kv_namespaces]]
 binding = "AUTH_CACHE"
-id = "00000000000000000000000000000000"  # Replace after: wrangler kv:namespace create AUTH_CACHE
+id = "169f14ca07cc403e9774e179b0ec457b"
 
 # R2 Bucket for backups
 [[r2_buckets]]

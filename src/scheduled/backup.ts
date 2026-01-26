@@ -112,9 +112,23 @@ async function backupTable(
     table: string,
     timestamp: string
 ): Promise<TableBackupResult> {
+    // SECURITY FIX: Validate table name against whitelist to prevent SQL injection
+    // The table parameter is interpolated into SQL, so we must ensure it's a known safe value
+    const allowedTables: readonly string[] = BACKUP_TABLES;
+    if (!allowedTables.includes(table)) {
+        console.error(`Invalid table name attempted: ${table}`);
+        return {
+            table,
+            rowCount: 0,
+            path: '',
+            success: false,
+            error: `Invalid table name: ${table}`,
+        };
+    }
+
     const path = `backups/${table}/${timestamp}.json`;
 
-    // Fetch all rows from the table
+    // Fetch all rows from the table (table name is now validated)
     const result = await db.all<BackupRow>(`SELECT * FROM ${table}`, []);
     const rows = result.results;
 

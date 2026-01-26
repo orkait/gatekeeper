@@ -31,7 +31,7 @@ describe('TenantService', () => {
 
     describe('createTenant', () => {
         it('should create a tenant with owner', async () => {
-            const { TenantService } = await import('../services/tenant.service');
+            const { TenantService } = await import('../services/tenant');
             const service = new TenantService(mockRepository as any);
 
             mockRepository.getTenantByName.mockResolvedValue(null);
@@ -49,7 +49,7 @@ describe('TenantService', () => {
         });
 
         it('should reject duplicate tenant names', async () => {
-            const { TenantService } = await import('../services/tenant.service');
+            const { TenantService } = await import('../services/tenant');
             const service = new TenantService(mockRepository as any);
 
             mockRepository.getTenantByName.mockResolvedValue({ id: 'existing' });
@@ -66,7 +66,7 @@ describe('TenantService', () => {
 
     describe('getTenant', () => {
         it('should return tenant by ID', async () => {
-            const { TenantService } = await import('../services/tenant.service');
+            const { TenantService } = await import('../services/tenant');
             const service = new TenantService(mockRepository as any);
 
             const tenant = {
@@ -85,7 +85,7 @@ describe('TenantService', () => {
         });
 
         it('should return error for non-existent tenant', async () => {
-            const { TenantService } = await import('../services/tenant.service');
+            const { TenantService } = await import('../services/tenant');
             const service = new TenantService(mockRepository as any);
 
             mockRepository.getTenantById.mockResolvedValue(null);
@@ -99,7 +99,7 @@ describe('TenantService', () => {
 
     describe('removeUserFromTenant', () => {
         it('should prevent removing the last owner', async () => {
-            const { TenantService } = await import('../services/tenant.service');
+            const { TenantService } = await import('../services/tenant');
             const service = new TenantService(mockRepository as any);
 
             mockRepository.getTenantById.mockResolvedValue({ id: 'tenant_123' });
@@ -129,7 +129,7 @@ describe('QuotaService', () => {
 
     describe('checkQuota', () => {
         it('should return unlimited for tenant without quota limit', async () => {
-            const { QuotaService } = await import('../services/quota.service');
+            const { QuotaService } = await import('../services/quota');
             const service = new QuotaService(mockRepository as any);
 
             mockRepository.rawFirst.mockResolvedValue({ global_quota_limit: null });
@@ -142,7 +142,7 @@ describe('QuotaService', () => {
         });
 
         it('should check per-key quota first', async () => {
-            const { QuotaService } = await import('../services/quota.service');
+            const { QuotaService } = await import('../services/quota');
             const service = new QuotaService(mockRepository as any);
 
             // API key with quota limit
@@ -162,7 +162,7 @@ describe('QuotaService', () => {
         });
 
         it('should deny when quota exceeded', async () => {
-            const { QuotaService } = await import('../services/quota.service');
+            const { QuotaService } = await import('../services/quota');
             const service = new QuotaService(mockRepository as any);
 
             // Tenant at quota limit
@@ -190,7 +190,7 @@ describe('QuotaService', () => {
 
     describe('recordUsage', () => {
         it('should record usage with idempotency', async () => {
-            const { QuotaService } = await import('../services/quota.service');
+            const { QuotaService } = await import('../services/quota');
             const service = new QuotaService(mockRepository as any);
 
             mockRepository.rawFirst.mockResolvedValue(null); // No existing
@@ -208,7 +208,7 @@ describe('QuotaService', () => {
         });
 
         it('should return existing event for duplicate idempotency key', async () => {
-            const { QuotaService } = await import('../services/quota.service');
+            const { QuotaService } = await import('../services/quota');
             const service = new QuotaService(mockRepository as any);
 
             const existingEvent = {
@@ -249,7 +249,7 @@ describe('FeatureFlagService', () => {
 
     describe('featureEnabled', () => {
         it('should return false for inactive flag', async () => {
-            const { FeatureFlagService } = await import('../services/featureflag.service');
+            const { FeatureFlagService } = await import('../services/featureflag');
             const service = new FeatureFlagService(mockRepository as any);
 
             mockRepository.rawFirst.mockResolvedValue({
@@ -272,7 +272,7 @@ describe('FeatureFlagService', () => {
         });
 
         it('should return true for explicitly enabled tenant', async () => {
-            const { FeatureFlagService } = await import('../services/featureflag.service');
+            const { FeatureFlagService } = await import('../services/featureflag');
             const service = new FeatureFlagService(mockRepository as any);
 
             mockRepository.rawFirst.mockResolvedValue({
@@ -295,7 +295,7 @@ describe('FeatureFlagService', () => {
         });
 
         it('should return true for enabled tier', async () => {
-            const { FeatureFlagService } = await import('../services/featureflag.service');
+            const { FeatureFlagService } = await import('../services/featureflag');
             const service = new FeatureFlagService(mockRepository as any);
 
             mockRepository.rawFirst.mockResolvedValue({
@@ -319,7 +319,7 @@ describe('FeatureFlagService', () => {
         });
 
         it('should use rollout percentage deterministically', async () => {
-            const { FeatureFlagService } = await import('../services/featureflag.service');
+            const { FeatureFlagService } = await import('../services/featureflag');
             const service = new FeatureFlagService(mockRepository as any);
 
             mockRepository.rawFirst.mockResolvedValue({
@@ -358,7 +358,7 @@ describe('AuthorizationService', () => {
 
     describe('authorize', () => {
         it('should deny when user is not in tenant', async () => {
-            const { AuthorizationService } = await import('../services/authorization.service');
+            const { AuthorizationService } = await import('../services/authorization');
             const service = new AuthorizationService(mockRepository as any);
 
             mockRepository.getSessionById.mockResolvedValue({
@@ -384,7 +384,7 @@ describe('AuthorizationService', () => {
         });
 
         it('should check role hierarchy correctly', async () => {
-            const { AuthorizationService } = await import('../services/authorization.service');
+            const { AuthorizationService } = await import('../services/authorization');
             const service = new AuthorizationService(mockRepository as any);
 
             // Setup mocks for full authorization flow

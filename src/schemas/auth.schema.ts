@@ -1,7 +1,20 @@
 import { z } from "zod";
 
 export const EmailSchema = z.string().email().max(255);
-export const PasswordSchema = z.string().min(8).max(128);
+
+// Password requirements:
+// - Minimum 12 characters (NIST recommends 8+ but 12 is more secure)
+// - Maximum 128 characters
+// - At least one uppercase letter
+// - At least one lowercase letter  
+// - At least one number
+export const PasswordSchema = z.string()
+    .min(12, "Password must be at least 12 characters")
+    .max(128, "Password must be at most 128 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number");
+
 export const NameSchema = z.string().min(1).max(100);
 
 export const SignupSchema = z.object({
