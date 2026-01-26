@@ -141,6 +141,13 @@ export class JWTService {
                     payload: payload as ApiKeyJWTPayload,
                     type: 'api_key',
                 };
+            } else if (payload.sub) {
+                // Basic auth token from AuthService (signup/login)
+                // Has sub (userId) and email, but no session_id or api_key_id
+                return {
+                    valid: true,
+                    payload: payload as AuthJWTPayload,
+                };
             }
 
             return { valid: false, error: 'Unknown token type' };

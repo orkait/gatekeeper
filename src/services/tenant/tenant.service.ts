@@ -105,6 +105,12 @@ export class TenantService {
             return err('Tenant not found');
         }
 
+        // Verify user exists
+        const user = await this.repository.getUserById(input.userId);
+        if (!user) {
+            return err('User not found');
+        }
+
         // Check if user is already a member
         const existing = await this.repository.getTenantUser(input.tenantId, input.userId);
         if (existing) {

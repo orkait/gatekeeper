@@ -1,128 +1,118 @@
 # Orkait Auth
 
-A serverless control plane for authentication, per-service sessions, subscriptions, quotas, and authorization decisions for multi-service products. Built on Cloudflare Workers with TypeScript.
+A **control plane** for managing authentication, sessions, subscriptions, and access control across multiple services. Built on Cloudflare Workers.
 
-## Features
+> **What's a control plane?** It's a central service that other services call to answer questions like "Is this user allowed to do this?" or "Has this user exceeded their quota?"
 
-### Authentication & Sessions
-- **Email/Password Authentication** - Secure registration and login with PBKDF2 password hashing
-- **Google OAuth** - Seamless Google Sign-In integration with automatic account linking
-- **Per-Service Sessions** - One session per user+tenant+service combination
-- **JWT Token Management** - Access tokens with service-scoped audiences
-- **JWKS Endpoint** - Public key distribution for external JWT verification
+## What This Service Does
 
-### Multi-Tenancy
-- **Tenant Management** - Full CRUD for tenants with quota limits
-- **Role-Based Access** - Owner, admin, and member roles per tenant
-- **User Management** - Add/remove users, update roles
+### 🔐 Authentication & Sessions
+- **Email/Password Login** - Users sign up and log in securely (passwords hashed with PBKDF2)
+- **Google Login** - "Sign in with Google" support, auto-links to existing accounts
+- **Per-Service Sessions** - Each user gets one session per service they use
+- **JWT Tokens** - Short-lived access tokens + long-lived refresh tokens
+- **JWKS Endpoint** - Public keys so other services can verify tokens themselves
 
-### API Keys
-- **Secure Generation** - SHA-256 hashed storage, plaintext shown once
-- **Scoped Access** - Per-key scopes and quota limits
-- **JWT Exchange** - Exchange API keys for short-lived JWTs
+### 🏢 Multi-Tenancy (Organizations)
+- **Tenants** - Groups of users (like a company or team)
+- **Roles** - Owner, Admin, or Member within each tenant
+- **User Management** - Add/remove people, change their roles
 
-### Subscriptions & Quotas
-- **Tier Management** - Free, pro, enterprise subscription tiers
-- **Per-Service Enablement** - Enable/disable services per subscription
-- **Hierarchical Quotas** - Per-key limits, then global tenant limits
-- **Usage Tracking** - Idempotent usage recording with events
+### 🔑 API Keys
+- **Secure Storage** - Keys are hashed (SHA-256), you only see the plaintext once
+- **Scoped Access** - Each key can have its own permissions and limits
+- **JWT Exchange** - Trade an API key for a short-lived JWT token
 
-### Feature Flags & Overrides
-- **Feature Flags** - Tier-based, tenant-specific, and rollout percentage
-- **Admin Overrides** - Quota boosts, tier upgrades, feature grants
-- **Deterministic Rollouts** - Consistent results based on tenant ID
+### 📊 Subscriptions & Quotas
+- **Tiers** - Free, Pro, Enterprise levels
+- **Per-Service Limits** - Each service can have its own quota within a subscription
+- **Usage Tracking** - Count API calls, resources created, etc.
+- **Quota Enforcement** - Block requests when limits are exceeded
 
-### Authorization
-- **Central authorize()** - Single function for all authorization decisions
-- **Multi-Factor Checks** - Session, subscription, service, feature, quota, RBAC
-- **KV Caching** - Cached decisions with D1 fallback support
+### 🚩 Feature Flags & Overrides
+- **Feature Flags** - Turn features on/off for specific tiers or tenants
+- **Rollout Percentages** - Gradually release features to a percentage of users
+- **Admin Overrides** - Manually give a tenant extra quota or features
 
-### Webhooks
-- **Endpoint Registration** - Per-tenant webhook URLs
-- **Event Emission** - subscription.*, user.*, api_key.*, quota.*
-- **Delivery Tracking** - Pending, delivered, failed statuses
+### ✅ Authorization
+- **Central `/authorize` endpoint** - One place to check "can this user do this thing?"
+- **Checks Everything** - Session validity, subscription status, feature flags, quotas, user role
+- **Caching** - Stores decisions in KV for speed, falls back to database if needed
 
-### Operations
-- **Structured Logging** - JSON logs with request correlation
-- **R2 Backups** - Scheduled daily backups to R2
-- **Strong Consistency** - D1 sessions for auth-critical reads
+### 📡 Webhooks
+- **Event Notifications** - Get notified when users sign up, subscriptions change, quotas hit, etc.
+- **Delivery Tracking** - See which webhooks succeeded or failed
+
+### 🛠 Operations
+- **Structured Logging** - JSON logs with request IDs for debugging
+- **Daily Backups** - Automatic backups to R2 storage at 2 AM UTC
+- **Strong Consistency** - Uses D1 sessions to avoid stale data on auth-critical reads
 
 ## Tech Stack
 
-- **Runtime**: [Cloudflare Workers](https://workers.cloudflare.com/) (serverless edge computing)
-- **Framework**: [Hono](https://hono.dev/) (lightweight web framework)
-- **Database**: [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite-based distributed database)
-- **Cache**: [Cloudflare KV](https://developers.cloudflare.com/kv/) (auth decision caching)
-- **Storage**: [Cloudflare R2](https://developers.cloudflare.com/r2/) (backup storage)
-- **Language**: TypeScript (strict mode)
-- **Validation**: [Zod](https://zod.dev/) (runtime schema validation)
-- **JWT**: [jose](https://github.com/panva/jose) (JWT signing/verification)
+| Component | Technology | What it does |
+|-----------|------------|--------------|
+| Runtime | Cloudflare Workers | Runs your code at the edge, serverless |
+| Framework | Hono | Lightweight web framework (like Express) |
+| Database | Cloudflare D1 | SQLite-based distributed database |
+| Cache | Cloudflare KV | Fast key-value store for caching auth decisions |
+| Storage | Cloudflare R2 | S3-compatible storage for backups |
+| Language | TypeScript | Type-safe JavaScript |
+| Validation | Zod | Validates request/response data at runtime |
 
 ## Project Structure
 
 ```
 orka-auth/
 ├── src/
-│   ├── adapters/           # Storage abstraction layer
-│   ├── middleware/         # Request middleware
-│   │   ├── auth.ts         # JWT verification
-│   │   ├── cors.ts         # CORS configuration
-│   │   ├── error-handler.ts # Centralized error handling
-│   │   ├── logger.ts       # Structured JSON logging
-│   │   └── service-injector.ts
-│   ├── repositories/       # Database access layer
-│   │   └── auth.repository.ts # Typed SQL queries
-│   ├── routes/             # API route handlers
-│   │   ├── admin.routes.ts # Feature flags & overrides
-│   │   ├── auth.routes.ts  # Authentication
-│   │   ├── authorize.routes.ts # Authorization endpoint
-│   │   ├── keys.routes.ts  # API key management
-│   │   ├── subscription.routes.ts # Subscriptions & usage
-│   │   ├── tenant.routes.ts # Tenant management
-│   │   └── webhook.routes.ts # Webhook management
-│   ├── scheduled/          # Scheduled workers
-│   │   └── backup.ts       # R2 backup worker
-│   ├── services/           # Business logic
-│   │   ├── apikey.service.ts
-│   │   ├── auth.service.ts
-│   │   ├── authorization.service.ts # Central authorize()
-│   │   ├── featureflag.service.ts
-│   │   ├── jwt.service.ts
-│   │   ├── override.service.ts
-│   │   ├── quota.service.ts
-│   │   ├── session.service.ts
-│   │   ├── subscription.service.ts
-│   │   ├── tenant.service.ts
-│   │   └── webhook.service.ts
-│   ├── schemas/            # Zod validation schemas
-│   ├── utils/              # Utilities
-│   │   ├── cache.ts        # KV cache helpers
-│   │   └── db.ts           # D1 strong consistency
-│   ├── types.ts
-│   ├── env.ts
-│   ├── server.ts
-│   └── index.ts
-├── migrations/             # D1 schema migrations
-│   ├── 0001_init.sql
+│   ├── middleware/         # Runs before route handlers
+│   │   ├── auth.ts         # Checks JWT tokens
+│   │   ├── cors.ts         # Handles cross-origin requests
+│   │   ├── error-handler.ts # Catches errors, returns clean responses
+│   │   ├── logger.ts       # Logs requests in JSON format
+│   │   └── service-injector.ts # Sets up services for each request
+│   │
+│   ├── repositories/       # Talks to the database
+│   │   └── auth.repository.ts
+│   │
+│   ├── routes/             # API endpoints
+│   │   ├── auth/           # /api/auth/* - Login, signup, tokens
+│   │   ├── authorize/      # /api/authorize - Permission checks
+│   │   ├── keys/           # /api/keys/* - API key management
+│   │   ├── tenant/         # /api/tenants/* - Organization management
+│   │   ├── subscription/   # /api/subscriptions/* - Plans & usage
+│   │   ├── webhook/        # /api/webhooks/* - Webhook configuration
+│   │   └── admin/          # /api/admin/* - Feature flags & overrides
+│   │
+│   ├── services/           # Business logic (the actual work)
+│   │   ├── auth.service.ts       # Sign up, login, token refresh
+│   │   ├── authorization.service.ts # The central "can they do this?" check
+│   │   ├── tenant.service.ts     # Create/manage organizations
+│   │   ├── quota.service.ts      # Track and enforce usage limits
+│   │   └── ...
+│   │
+│   ├── schemas/            # Zod schemas for request validation
+│   ├── utils/              # Helper functions
+│   ├── types.ts            # TypeScript type definitions
+│   └── index.ts            # Entry point
+│
+├── migrations/             # SQL files that create database tables
+│   ├── 0001_init.sql       # Users, subscriptions, API keys, etc.
 │   ├── 0002_core_tables.sql
-│   ├── 0003_api_keys_usage.sql
-│   ├── 0004_features_webhooks.sql
-│   ├── 0005_tenant_subscriptions.sql
-│   └── 0006_tenant_subscription_items.sql
-├── wrangler.toml           # Cloudflare Workers config
-├── package.json
-└── tsconfig.json
+│   └── ...
+│
+└── wrangler.toml           # Cloudflare Workers configuration
 ```
 
 ## Getting Started
 
-### Prerequisites
+### What You Need
 
-- Node.js 18+
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)
-- Cloudflare account
+- Node.js 18 or higher
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) (Cloudflare's deployment tool)
+- A Cloudflare account
 
-### Installation
+### 1. Install Dependencies
 
 ```bash
 git clone <repository-url>
@@ -130,78 +120,107 @@ cd orka-auth
 npm install
 ```
 
-### Configuration
+### 2. Set Up Secrets
 
-Create secrets via Wrangler:
+These are sensitive values that shouldn't be in your code:
 
 ```bash
-wrangler secret put JWT_SECRET
-wrangler secret put INTERNAL_SECRET
+wrangler secret put JWT_SECRET        # Used to sign JWT tokens
+wrangler secret put INTERNAL_SECRET   # Used for internal service-to-service calls
 ```
 
-Environment variables in `wrangler.toml`:
+### 3. Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `JWT_SECRET` | Yes | - | Secret for JWT signing |
-| `INTERNAL_SECRET` | Yes | - | Internal API authentication |
-| `ENVIRONMENT` | No | `production` | Environment mode |
-| `JWT_EXPIRES_IN` | No | `900` | Access token expiry (seconds) |
-| `REFRESH_TOKEN_EXPIRES_IN` | No | `604800` | Refresh token expiry (seconds) |
-| `GOOGLE_CLIENT_ID` | No | - | Google OAuth client ID |
-| `ALLOWED_ORIGINS` | No | `*` | CORS origins (comma-separated) |
-| `RSA_PRIVATE_KEY` | No | - | RSA private key for JWKS |
-| `RSA_PUBLIC_KEY` | No | - | RSA public key for JWKS |
+These go in `wrangler.toml`:
 
-### Local Development
+| Variable | Required | Default | What it does |
+|----------|----------|---------|--------------|
+| `JWT_SECRET` | Yes | - | Signs JWT tokens (set via `wrangler secret`) |
+| `INTERNAL_SECRET` | Yes | - | Authenticates internal API calls |
+| `ENVIRONMENT` | No | `production` | `development`, `staging`, or `production` |
+| `JWT_EXPIRES_IN` | No | `900` | Access token lifetime in seconds (15 min) |
+| `REFRESH_TOKEN_EXPIRES_IN` | No | `604800` | Refresh token lifetime (7 days) |
+| `GOOGLE_CLIENT_ID` | No | - | For Google Sign-In support |
+| `ALLOWED_ORIGINS` | No | `*` | CORS origins, comma-separated |
+
+### 4. Local Development
 
 ```bash
-# Initialize local D1 database
+# Create local database with tables
 npm run db:init:local
 
-# Start development server
+# Start the dev server
 npm run dev
 ```
 
-### Deployment
+### 5. Deploy to Production
 
 ```bash
-# Create D1 database
-wrangler d1 create orkait_auth
+# Create the database
+wrangler d1 create orkait_identity_service
 
-# Create KV namespace
+# Apply migrations (creates all the tables)
+wrangler d1 migrations apply orkait_identity_service --remote
+
+# Create the cache
 wrangler kv:namespace create AUTH_CACHE
 
-# Create R2 bucket
+# Create backup storage (optional)
 wrangler r2 bucket create orkait-auth-backups
 
-# Update wrangler.toml with IDs
+# Update wrangler.toml with the IDs from above commands
 
-# Deploy
+# Deploy!
 npm run deploy
 ```
 
 ## API Reference
 
-### Authentication
+### Authentication (`/api/auth`)
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/signup` | POST | Register new user |
-| `/api/auth/login` | POST | Email/password login |
-| `/api/auth/google` | POST | Google OAuth login |
-| `/api/auth/refresh` | POST | Refresh access token |
-| `/api/auth/logout` | POST | Logout single session |
-| `/api/auth/logout-all` | POST | Logout all sessions |
-| `/api/auth/apikey` | POST | Exchange API key for JWT |
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/api/auth/signup` | POST | Create a new user account |
+| `/api/auth/login` | POST | Log in with email and password |
+| `/api/auth/google` | POST | Log in with Google ID token |
+| `/api/auth/refresh` | POST | Get a new access token using refresh token |
+| `/api/auth/logout` | POST | Log out (revokes refresh token) |
+| `/api/auth/logout-all` | POST | Log out from all devices |
+| `/api/auth/apikey` | POST | Exchange an API key for a JWT |
 
-### Authorization
+**Example - Sign up:**
+```bash
+curl -X POST https://your-worker.workers.dev/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "securepass123", "name": "Jane"}'
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/authorize` | POST | Central authorization check |
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbG...",
+    "refreshToken": "abc123...",
+    "expiresIn": 900,
+    "user": {
+      "id": "usr_123",
+      "email": "user@example.com",
+      "name": "Jane"
+    }
+  }
+}
+```
 
-Request:
+### Authorization (`/api/authorize`)
+
+The central endpoint that answers: **"Can this user do this action?"**
+
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/api/authorize` | POST | Check if current user can perform an action |
+
+**Example Request:**
 ```json
 {
   "action": "read",
@@ -215,189 +234,183 @@ Request:
 }
 ```
 
-### Tenants
+**What it checks:**
+1. Is the session valid?
+2. Does the tenant have an active subscription?
+3. Is the required service enabled?
+4. Is the required feature flag on?
+5. Is there enough quota remaining?
+6. Does the user have the required role?
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/tenants` | POST | Create tenant |
-| `/api/tenants/:id` | GET | Get tenant |
-| `/api/tenants/:id` | PATCH | Update tenant |
-| `/api/tenants/:id` | DELETE | Delete tenant |
-| `/api/tenants/:id/users` | GET | List tenant users |
-| `/api/tenants/:id/users` | POST | Add user to tenant |
-| `/api/tenants/:id/users/:userId` | PATCH | Update user role |
-| `/api/tenants/:id/users/:userId` | DELETE | Remove user |
-| `/api/tenants/me/list` | GET | List user's tenants |
+### Tenants (`/api/tenants`)
 
-### API Keys
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/api/tenants` | POST | Create a new organization |
+| `/api/tenants/:id` | GET | Get organization details |
+| `/api/tenants/:id` | PATCH | Update organization |
+| `/api/tenants/:id` | DELETE | Delete organization |
+| `/api/tenants/:id/users` | GET | List members |
+| `/api/tenants/:id/users` | POST | Add a member |
+| `/api/tenants/:id/users/:userId` | PATCH | Change member's role |
+| `/api/tenants/:id/users/:userId` | DELETE | Remove a member |
+| `/api/tenants/me/list` | GET | List organizations I belong to |
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/keys` | POST | Create API key |
-| `/api/keys` | GET | List API keys |
-| `/api/keys/:id` | GET | Get API key |
-| `/api/keys/:id` | PATCH | Update API key |
-| `/api/keys/:id` | DELETE | Revoke API key |
+### API Keys (`/api/keys`)
 
-### Subscriptions & Usage
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/api/keys` | POST | Create a new API key |
+| `/api/keys` | GET | List all my API keys |
+| `/api/keys/:id` | GET | Get API key details |
+| `/api/keys/:id` | PATCH | Update API key settings |
+| `/api/keys/:id` | DELETE | Revoke an API key |
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/subscriptions/:tenantId` | GET | Get subscription |
-| `/api/subscriptions/:tenantId/upgrade` | POST | Upgrade tier |
-| `/api/subscriptions/:tenantId/downgrade` | POST | Downgrade tier |
+### Subscriptions & Usage (`/api/subscriptions`, `/api/usage`)
+
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/api/subscriptions/:tenantId` | GET | Get subscription details |
+| `/api/subscriptions/:tenantId/upgrade` | POST | Upgrade to higher tier |
+| `/api/subscriptions/:tenantId/downgrade` | POST | Downgrade to lower tier |
 | `/api/usage/:tenantId` | GET | Get usage summary |
-| `/api/usage/:tenantId/events` | GET | Get usage events |
-| `/api/usage/:tenantId/quota` | GET | Check quota status |
-| `/api/usage/record` | POST | Record usage (internal) |
+| `/api/usage/:tenantId/events` | GET | Get detailed usage events |
+| `/api/usage/:tenantId/quota` | GET | Check remaining quota |
+| `/api/usage/record` | POST | Record usage (internal use) |
 
-### Webhooks
+### Webhooks (`/api/webhooks`)
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/webhooks` | POST | Register webhook |
-| `/api/webhooks` | GET | List webhooks |
-| `/api/webhooks/:id` | GET | Get webhook |
-| `/api/webhooks/:id` | PATCH | Update webhook |
-| `/api/webhooks/:id` | DELETE | Delete webhook |
-| `/api/webhooks/events` | GET | List event types |
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/api/webhooks` | POST | Register a webhook URL |
+| `/api/webhooks` | GET | List registered webhooks |
+| `/api/webhooks/:id` | GET | Get webhook details |
+| `/api/webhooks/:id` | PATCH | Update webhook settings |
+| `/api/webhooks/:id` | DELETE | Remove a webhook |
+| `/api/webhooks/events` | GET | List available event types |
 
-### Admin (Feature Flags & Overrides)
+### Admin (`/api/admin`)
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/admin/flags` | GET | List feature flags |
-| `/api/admin/flags` | POST | Create feature flag |
-| `/api/admin/flags/:id` | GET | Get feature flag |
-| `/api/admin/flags/:id` | PATCH | Update feature flag |
-| `/api/admin/flags/:id` | DELETE | Delete feature flag |
-| `/api/admin/flags/:id/toggle` | POST | Toggle flag |
-| `/api/admin/overrides` | GET | List overrides |
-| `/api/admin/overrides` | POST | Create override |
-| `/api/admin/overrides/:id` | DELETE | Delete override |
-| `/api/admin/overrides/:id/expire` | POST | Expire override |
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/api/admin/flags` | GET | List all feature flags |
+| `/api/admin/flags` | POST | Create a feature flag |
+| `/api/admin/flags/:id` | GET | Get flag details |
+| `/api/admin/flags/:id` | PATCH | Update a flag |
+| `/api/admin/flags/:id` | DELETE | Delete a flag |
+| `/api/admin/flags/:id/toggle` | POST | Turn flag on/off |
+| `/api/admin/overrides` | GET | List all overrides |
+| `/api/admin/overrides` | POST | Create an override |
+| `/api/admin/overrides/:id` | DELETE | Remove an override |
+| `/api/admin/overrides/:id/expire` | POST | Expire an override early |
 
-### JWKS
+### JWKS (Public Keys)
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/.well-known/jwks.json` | GET | Get public keys |
+| Endpoint | Method | What it does |
+|----------|--------|--------------|
+| `/.well-known/jwks.json` | GET | Get public keys to verify JWTs |
 
-## Database Schema
+## Database Tables
 
 ### Core Tables
-- **users** - User accounts and profiles
-- **tenants** - Multi-tenant organizations
-- **tenant_users** - User-tenant relationships with roles
-- **sessions** - Per-service sessions with refresh tokens
+- **users** - Email, password hash, Google ID, profile info
+- **tenants** - Organization name, quota limits
+- **tenant_users** - Links users to tenants, stores their role
+- **sessions** - Active sessions with refresh token hashes
 
 ### Subscription Tables
-- **subscriptions** - Tenant subscriptions with tiers
-- **tenant_subscription_items** - Per-service enablement
+- **subscriptions** - Which tier each tenant is on
+- **tenant_subscription_items** - Which services are enabled
 
 ### API & Usage Tables
-- **api_keys** - Hashed API keys with scopes/quotas
-- **usage_events** - Idempotent usage tracking
+- **api_keys** - Hashed keys, scopes, rate limits
+- **usage_events** - Each API call or resource created
 
 ### Feature & Admin Tables
-- **feature_flags** - Feature flag configurations
-- **admin_overrides** - Quota/tier/feature overrides
+- **feature_flags** - Flag name, enabled tiers, rollout %
+- **admin_overrides** - Manual quota/feature grants
 
 ### Webhook Tables
-- **webhook_endpoints** - Registered webhook URLs
-- **webhook_events** - Event delivery tracking
+- **webhook_endpoints** - URLs to call when events happen
+- **webhook_events** - Delivery attempts and statuses
 
-## Backup & Restore
+## Backups
 
-### Automated Backups
+### Automatic Backups
+- Run daily at 2 AM UTC via Cloudflare scheduled trigger
+- Stored in R2 at `backups/{table}/{timestamp}.json`
+- Covers: users, tenants, subscriptions, api_keys, sessions, etc.
 
-Backups run daily at 2 AM UTC via scheduled trigger:
-- Tables: users, tenants, subscriptions, api_keys, sessions, etc.
-- Location: `backups/{table}/{timestamp}.json` in R2
-
-### Manual Restore
+### Restoring from Backup
 
 ```typescript
 import { restoreFromBackup } from './src/scheduled/backup';
 
-// Restore a specific table
+// This DELETES existing data and replaces it with backup data
 await restoreFromBackup(bucket, db, 'backups/users/2026-01-25T02-00-00-000Z.json');
 ```
 
-**Warning**: Restore deletes existing data before inserting backup data.
+⚠️ **Warning**: Restore is destructive - it deletes current data first.
 
 ## Testing
 
-Comprehensive test suite with Vitest covering services, repositories, adapters, and integration flows.
-
-### Quick Start
-
 ```bash
-# Run all tests in watch mode (development)
+# Run tests in watch mode (re-runs on file changes)
 npm test -- --watch
 
-# Run all tests once
+# Run tests once
 npm run test:run
 
 # Run with coverage report
 npm run test:coverage
 
-# Run specific test file
+# Run a specific test file
 npm test src/services/__tests__/tenant.service.test.ts
 
-# Type check
+# Type-check without running tests
 npm run type-check
 ```
 
-### Test Structure
+### Test Coverage
+- **Target**: 75%
+- **Current**: 33.49%
+- **Priority**: AuthService, SessionService, JWTService, QuotaService
 
-```
-src/
-├── __tests__/
-│   ├── helpers/            # Mock factories and fixtures
-│   ├── integration.test.ts # Cross-service tests
-│   └── services.test.ts    # Service layer tests
-└── services/
-    └── __tests__/
-        └── *.test.ts       # Unit tests co-located with code
-```
-
-### Current Coverage
-
-```
-Overall: 33.49% (Target: 75%)
-Services: 32.06%
-  - TenantService: 53.65% ✅
-  - QuotaService: 52%
-  - Utils: 80% ✅
-```
-
-### Documentation
-
-- **[VITEST_SETUP.md](./VITEST_SETUP.md)** - Setup summary and getting started
-- **[TESTING.md](./TESTING.md)** - Comprehensive testing strategy
-- **[TEST_PLAN.md](./TEST_PLAN.md)** - Phased implementation plan
-- **[TESTING_QUICKREF.md](./TESTING_QUICKREF.md)** - Quick reference guide
-
-### Test Priorities
-
-**HIGH PRIORITY** (Start here):
-1. AuthService - Core authentication
-2. SessionService - Session management
-3. JWTService - Token handling
-4. QuotaService - Usage tracking
-5. AuthorizationService - Permissions
-
-See [TEST_PLAN.md](./TEST_PLAN.md) for complete implementation roadmap.
+See `TEST_PLAN.md` for the full testing roadmap.
 
 ## Security
 
-- **Password Hashing**: PBKDF2-SHA256, 100k iterations
-- **JWT Signing**: HS256 (symmetric) or RS256 (asymmetric via JWKS)
-- **API Key Hashing**: SHA-256, plaintext never stored
-- **Token Rotation**: Refresh tokens are single-use
-- **Strong Consistency**: D1 sessions for auth-critical reads
-- **KV Fallback**: Degraded mode with cached decisions on D1 outage
+| Area | How it's secured |
+|------|------------------|
+| Passwords | PBKDF2-SHA256 with 100,000 iterations |
+| JWTs | HS256 (symmetric) or RS256 (asymmetric via JWKS) |
+| API Keys | SHA-256 hashed, plaintext never stored |
+| Refresh Tokens | Single-use (rotated on each refresh) |
+| Database Reads | D1 sessions for strong consistency |
+| Fallback | KV cache used if D1 is unavailable |
+
+## Troubleshooting
+
+### "Internal Server Error" on signup
+1. Check if migrations were applied: `wrangler d1 migrations list orkait_identity_service --remote`
+2. Check if secrets are set: `wrangler secret list`
+3. Check logs: `wrangler tail`
+
+### "HMAC key length" error
+- Your `JWT_SECRET` is empty or not set
+- Fix: `wrangler secret put JWT_SECRET` and enter a long random string
+
+### Common Commands
+```bash
+# See live logs from your worker
+wrangler tail
+
+# List secrets (values hidden)
+wrangler secret list
+
+# Run a query on production database
+wrangler d1 execute orkait_identity_service --remote --command="SELECT * FROM users LIMIT 5"
+```
 
 ## License
 
