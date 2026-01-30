@@ -18,6 +18,8 @@ export interface UserRow {
     created_at: number;
     updated_at: number;
     last_login_at: number | null;
+    locked_until: number | null;
+    failed_login_count: number;
 }
 
 export interface RefreshTokenRow {
@@ -30,6 +32,17 @@ export interface RefreshTokenRow {
     expires_at: number;
     created_at: number;
     revoked_at: number | null;
+}
+
+export interface EmailVerificationTokenRow {
+    [key: string]: unknown;
+    id: string;
+    user_id: string;
+    token: string;
+    token_hash: string;
+    expires_at: number;
+    created_at: number;
+    verified_at: number | null;
 }
 
 export interface TenantRow {

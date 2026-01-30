@@ -20,7 +20,15 @@ export interface ApiKeyJWTPayload extends JoseJWTPayload {
     exp: number;           // Expiration timestamp
 }
 
-export type AuthJWTPayload = SessionJWTPayload | ApiKeyJWTPayload;
+// Basic JWT payload structure.
+// Used for standard user authentication (signup/login).
+export interface BasicJWTPayload extends JoseJWTPayload {
+    sub: string;           // User ID
+    email: string;         // User Email
+    exp: number;           // Expiration timestamp
+}
+
+export type AuthJWTPayload = SessionJWTPayload | ApiKeyJWTPayload | BasicJWTPayload;
 
 export interface SignSessionJWTOptions {
     userId: string;

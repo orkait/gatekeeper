@@ -1,6 +1,7 @@
 import type { AuthRepository } from '../../repositories';
 import type { ServiceResult } from '../../types';
 import { generateId, ok, err, nowMs } from '../shared';
+import { QUOTA_BUFFER_PERCENTAGE, DEFAULT_USAGE_EVENTS_LIMIT, DEFAULT_USAGE_EVENTS_OFFSET } from '../../constants/quota';
 import type { 
     QuotaCheckResult, 
     QuotaPeriod, 
@@ -8,9 +9,6 @@ import type {
     UsageEvent, 
     UsageSummary 
 } from './types';
-
-// Quota buffer to prevent race condition overages (99% of limit).
-const QUOTA_BUFFER = 0.99;
 
 interface UsageEventRow {
     [key: string]: unknown;
@@ -164,8 +162,8 @@ export class QuotaService {
             params.push(options.service);
         }
 
-        const limit = options?.limit ?? 100;
-        const offset = options?.offset ?? 0;
+        const limit = options?.limit ?? DEFAULT_USAGE_EVENTS_LIMIT;
+        const offset = options?.offset ?? DEFAULT_USAGE_EVENTS_OFFSET;
 
         const result = await this.repository.rawAll<UsageEventRow>(
             `SELECT * FROM usage_events
@@ -253,7 +251,7 @@ export class QuotaService {
         );
 
         const used = usageResult?.total_quantity ?? 0;
-        const effectiveLimit = Math.floor(quotaLimit * QUOTA_BUFFER);
+        const effectiveLimit = Math.floor(quotaLimit * QUOTA_BUFFER_PERCENTAGE);
         const remaining = Math.max(0, effectiveLimit - used);
         const allowed = used + quantity <= effectiveLimit;
 
@@ -301,7 +299,7 @@ export class QuotaService {
         }
 
         const used = usageResult.data.totalQuantity;
-        const effectiveLimit = Math.floor(quotaLimit * QUOTA_BUFFER);
+        const effectiveLimit = Math.floor(quotaLimit * QUOTA_BUFFER_PERCENTAGE);
         const remaining = Math.max(0, effectiveLimit - used);
         const allowed = used + quantity <= effectiveLimit;
 

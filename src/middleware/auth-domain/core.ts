@@ -1,21 +1,24 @@
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { AuthService } from "../services/auth";
+import type { AuthService } from "../../services/auth";
+import { extractBearerToken } from "../../utils";
 
 export interface AuthContext {
     userId: string;
     email: string;
+    tenantId?: string;
 }
 
 export async function authMiddleware(c: Context, next: Next): Promise<Response | void> {
-    const authService = c.get("authService") as AuthService;
-    const authHeader = c.req.header("Authorization");
-
-    if (!authHeader?.startsWith("Bearer ")) {
-        throw new HTTPException(401, { message: "Authorization header required" });
+    // Idempotent: skip if already authenticated
+    const existingAuth = c.get("auth") as AuthContext | undefined;
+    if (existingAuth) {
+        await next();
+        return;
     }
 
-    const token = authHeader.slice(7);
+    const authService = c.get("authService") as AuthService;
+    const token = extractBearerToken(c);
     const payload = await authService.verifyAccessToken(token);
 
     if (!payload) {
@@ -24,14 +27,22 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
         });
     }
 
-    c.set(
-        "auth",
-        {
-            userId: payload.sub,
-            email: payload.email
-        } as AuthContext
-    );
+    const authContext: AuthContext = {
+        userId: payload.sub,
+        email: payload.email,
+        tenantId: payload.tenant_id
+    };
+
+    c.set("auth", authContext);
     await next();
+}
+
+export function getAuth(c: Context): AuthContext {
+    const auth = c.get("auth") as AuthContext | undefined;
+    if (!auth) {
+        throw new HTTPException(401, { message: "Authentication required" });
+    }
+    return auth;
 }
 
 export async function internalAuthMiddleware(c: Context, next: Next): Promise<Response | void> {
@@ -43,12 +54,4 @@ export async function internalAuthMiddleware(c: Context, next: Next): Promise<Re
     }
 
     await next();
-}
-
-export function getAuth(c: Context): AuthContext {
-    const auth = c.get("auth") as AuthContext | undefined;
-    if (!auth) {
-        throw new HTTPException(401, { message: "Authentication required" });
-    }
-    return auth;
 }

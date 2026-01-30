@@ -97,6 +97,24 @@ export class JWKSService {
             .sign(this.privateKey!);
     }
 
+    async signUserJWT(userId: string, email: string, expiresInSeconds?: number): Promise<string> {
+        await this.initialize();
+
+        const expiresIn = expiresInSeconds ?? this.defaultExpiresIn;
+        const now = nowSeconds();
+
+        const payload = {
+            sub: userId,
+            email: email,
+        };
+
+        return new SignJWT(payload)
+            .setProtectedHeader({ alg: 'RS256', typ: 'JWT', kid: this.keyId })
+            .setIssuedAt(now)
+            .setExpirationTime(now + expiresIn)
+            .sign(this.privateKey!);
+    }
+
     async verifySessionJWT(
         token: string,
         expectedAudience?: string

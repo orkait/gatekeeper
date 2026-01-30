@@ -23,7 +23,6 @@ export function createAPIRouter() {
     api.route('/webhooks', webhookRoutes);
     api.route('/tenants', tenantRoutes);
     api.route('/subscriptions', subscriptionRoutes);
-    api.route('/usage', subscriptionRoutes);
     api.route('/admin', adminRoutes);
 
     return api;

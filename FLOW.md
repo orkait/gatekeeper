@@ -432,4 +432,597 @@ A: The system falls back to KV cache for authorization decisions. It's "degraded
 
 ---
 
+## 14. Subscription Management
+
+Subscriptions control **what features a tenant can access** based on their tier.
+
+### 14.1 Subscription Model
+
+```
+Subscription {
+  id: "sub_abc123"
+  tenantId: "tnt_xyz789"
+  tier: "pro"                    // "free" | "pro" | "enterprise"
+  status: "active"               // "active" | "cancelled" | "past_due"
+  currentPeriodEnd: 1735689600   // When current period expires
+}
+```
+
+### 14.2 Tier Hierarchy
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                        ENTERPRISE                             │
+│  • All features                                               │
+│  • Highest quota limits                                       │
+│  • Priority support                                           │
+├──────────────────────────────────────────────────────────────┤
+│                           PRO                                 │
+│  • Advanced features                                          │
+│  • Higher quota limits                                        │
+├──────────────────────────────────────────────────────────────┤
+│                          FREE                                 │
+│  • Basic features only                                        │
+│  • Limited quota                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 14.3 Flow: Upgrade Subscription
+
+```
+Admin/User              Frontend                Orkait Auth
+    │                       │                        │
+    │  "Upgrade to Pro"     │                        │
+    │ ─────────────────────►│                        │
+    │                       │ POST /api/subscriptions│
+    │                       │ /{tenantId}/upgrade    │
+    │                       │ {tier: "pro"}          │
+    │                       │───────────────────────►│
+    │                       │                        │
+    │                       │                        │  1. Validate: new tier > current
+    │                       │                        │  2. Update subscription
+    │                       │                        │  3. Emit webhook event ──┐
+    │                       │                        │                          │
+    │                       │ {subscription}         │                          ▼
+    │                       │◄───────────────────────│               Billing Service
+    │  "Now on Pro!"        │                        │               receives notification
+    │ ◄─────────────────────│                        │
+```
+
+### 14.4 Per-Service Enablement
+
+Subscriptions can enable/disable specific services:
+
+```typescript
+// Enable analytics service for this subscription
+POST /api/subscriptions/{subscriptionId}/services
+{ "service": "analytics", "enabled": true }
+
+// During authorization, system checks:
+// 1. Is subscription active?
+// 2. Is this specific service enabled?
+```
+
+### 14.5 When Subscriptions Are Checked
+
+Subscriptions are checked during the **Authorization** flow:
+
+```
+Authorization Request
+        │
+        ▼
+┌─────────────────┐
+│ Session valid?  │──No──► Deny
+└────────┬────────┘
+         │ Yes
+         ▼
+┌─────────────────────────┐
+│ Subscription active?    │──No──► Deny (SUBSCRIPTION_INACTIVE)
+└────────┬────────────────┘
+         │ Yes
+         ▼
+┌─────────────────────────┐
+│ Tier has this feature?  │──No──► Deny (TIER_TOO_LOW)
+└────────┬────────────────┘
+         │ Yes
+         ▼
+    Continue checks...
+```
+
+---
+
+## 15. Usage Tracking & Quota System
+
+Tracks API usage and enforces limits at both **API key** and **tenant** levels.
+
+### 15.1 Usage Event
+
+```
+UsageEvent {
+  tenantId: "tnt_xyz789"
+  apiKeyId: "key_123"          // Optional
+  service: "api"
+  action: "document.create"
+  quantity: 1
+  period: "2024-01"            // Monthly bucket
+  idempotencyKey: "req_abc"    // Prevents double-counting
+}
+```
+
+### 15.2 Two-Level Quota Limits
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    TENANT GLOBAL LIMIT                       │
+│                    100,000 calls/month                       │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              API Key Limits (Optional)                │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │   │
+│  │  │ Key A       │  │ Key B       │  │ Key C       │   │   │
+│  │  │ 10k/day     │  │ 5k/hour     │  │ No limit    │   │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘   │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 15.3 Flow: Check and Record Usage
+
+```
+Your Service                           Orkait Auth
+    │                                       │
+    │  POST /api/authorize                  │
+    │  {action, resource, context: {        │
+    │    tenantId, quantity: 1, apiKeyId    │
+    │  }}                                   │
+    │──────────────────────────────────────►│
+    │                                       │
+    │                                       │  1. Check API key limit
+    │                                       │     (if apiKeyId provided)
+    │                                       │
+    │                                       │  2. Check tenant global limit
+    │                                       │
+    │                                       │  3. If allowed, record usage
+    │                                       │
+    │  {allowed: true,                      │
+    │   quotaRemaining: 8500}               │
+    │◄──────────────────────────────────────│
+    │                                       │
+    │  Proceed with request                 │
+```
+
+### 15.4 Quota Endpoints
+
+```bash
+# Get current quota status
+GET /api/subscriptions/usage/{tenantId}/quota
+
+# Response:
+{
+  "allowed": true,
+  "remaining": 8500,
+  "limit": 10000,
+  "used": 1500,
+  "level": "tenant"  // or "api_key"
+}
+
+# Get usage summary
+GET /api/subscriptions/usage/{tenantId}?period=2024-01
+
+# Get detailed usage events
+GET /api/subscriptions/usage/{tenantId}/events?period=2024-01&limit=100
+```
+
+### 15.5 Race Condition Protection
+
+Uses **99% buffer** to prevent multiple concurrent requests exceeding limit:
+
+```
+Actual Limit: 10,000
+Effective Limit: 10,000 × 0.99 = 9,900
+
+This leaves headroom for concurrent requests.
+```
+
+---
+
+## 16. Admin Features: Feature Flags
+
+Feature flags control **gradual rollout** and **per-tier features**.
+
+### 16.1 Feature Flag Model
+
+```
+FeatureFlag {
+  name: "dark_mode"
+  description: "New dark mode UI"
+  enabledTiers: ["pro", "enterprise"]   // Which tiers get this
+  enabledTenants: ["tnt_beta123"]       // Explicit whitelist
+  rolloutPercentage: 25                  // Gradual rollout (25%)
+  active: true                           // Kill switch
+}
+```
+
+### 16.2 Feature Flag Evaluation Order
+
+```
+Request: "Is dark_mode enabled for tenant_xyz?"
+                │
+                ▼
+┌───────────────────────────┐
+│ Is flag globally active?  │──No──► Feature DISABLED
+└────────────┬──────────────┘
+             │ Yes
+             ▼
+┌───────────────────────────┐
+│ Is tenant whitelisted?    │──Yes─► Feature ENABLED
+└────────────┬──────────────┘
+             │ No
+             ▼
+┌───────────────────────────┐
+│ Is tier in enabledTiers?  │──No──► Feature DISABLED
+└────────────┬──────────────┘
+             │ Yes
+             ▼
+┌───────────────────────────┐
+│ Rollout check:            │
+│ hash(tenantId + flagName) │
+│ % 100 < rolloutPercentage │──No──► Feature DISABLED
+└────────────┬──────────────┘
+             │ Yes
+             ▼
+        Feature ENABLED
+```
+
+### 16.3 Deterministic Rollout
+
+The rollout is **deterministic** (not random):
+- Same tenant always gets same result for same flag
+- Based on hash of `tenantId + flagName`
+- Ensures consistent user experience
+
+### 16.4 Real-World Use Cases
+
+| Scenario | How to Configure |
+|----------|-----------------|
+| Beta feature for select customers | `enabledTenants: ["tnt_customer1", "tnt_customer2"]` |
+| Pro-only feature | `enabledTiers: ["pro", "enterprise"]` |
+| Gradual rollout | `rolloutPercentage: 10` → `25` → `50` → `100` |
+| Kill switch | Set `active: false` to disable for everyone |
+
+### 16.5 Feature Flag Endpoints (Admin Only)
+
+```bash
+# Create flag
+POST /api/admin/flags
+{
+  "name": "new_editor",
+  "enabledTiers": ["pro"],
+  "rolloutPercentage": 10
+}
+
+# Update flag (increase rollout)
+PATCH /api/admin/flags/{id}
+{ "rolloutPercentage": 50 }
+
+# List all flags
+GET /api/admin/flags
+
+# Check if feature enabled (used by authorization)
+# Internal: flagService.featureEnabled("new_editor", {tenantId, tier})
+```
+
+---
+
+## 17. Admin Features: Overrides
+
+Overrides allow admins to **grant exceptions** to normal rules.
+
+### 17.1 Override Types
+
+| Type | Purpose | Example Value |
+|------|---------|---------------|
+| `quota_boost` | Add extra API calls | `"1000000"` (add 1M calls) |
+| `tier_upgrade` | Temporarily upgrade tier | `"enterprise"` |
+| `feature_grant` | Grant specific feature | `"advanced_analytics"` |
+
+### 17.2 Override Model
+
+```
+Override {
+  tenantId: "tnt_xyz789"
+  type: "quota_boost"
+  value: "500000"
+  reason: "Customer success promo"
+  grantedBy: "admin@company.com"
+  expiresAt: 1735689600           // Optional expiration
+}
+```
+
+### 17.3 How Overrides Are Applied
+
+```
+Authorization Request
+        │
+        ▼
+┌─────────────────────────┐
+│ Fetch active overrides  │
+│ for this tenant         │
+└────────┬────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   APPLY OVERRIDES                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  tier_upgrade?  ──► Treat tenant as higher tier              │
+│                     (Original: free → Effective: pro)        │
+│                                                              │
+│  feature_grant? ──► Feature enabled regardless of tier/flag  │
+│                                                              │
+│  quota_boost?   ──► Add extra units to quota limit           │
+│                     (100k + 500k boost = 600k effective)     │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+    Continue authorization with modified values
+```
+
+### 17.4 Real-World Use Cases
+
+| Scenario | Override Type |
+|----------|--------------|
+| Give trial customer Pro features | `tier_upgrade` to "pro" |
+| Promotional quota increase | `quota_boost` of 1,000,000 |
+| Early access to beta feature | `feature_grant` for feature name |
+| Enterprise POC evaluation | `tier_upgrade` to "enterprise" with expiration |
+
+### 17.5 Override Endpoints (Admin Only)
+
+```bash
+# Create override
+POST /api/admin/overrides
+{
+  "tenantId": "tnt_xyz789",
+  "type": "quota_boost",
+  "value": "500000",
+  "reason": "Q4 promotion",
+  "expiresInSeconds": 2592000  # 30 days
+}
+
+# List overrides for tenant
+GET /api/admin/overrides?tenantId=tnt_xyz789
+
+# Get active overrides (non-expired)
+GET /api/admin/overrides/{tenantId}/active
+
+# Manually expire an override
+POST /api/admin/overrides/{id}/expire
+
+# Delete override
+DELETE /api/admin/overrides/{id}
+```
+
+---
+
+## 18. Webhook System
+
+Webhooks notify external systems when **events occur** in Orkait Auth.
+
+### 18.1 Supported Events
+
+| Event | When Triggered |
+|-------|---------------|
+| `subscription.upgraded` | Tenant upgrades tier |
+| `subscription.downgraded` | Tenant downgrades tier |
+| `subscription.cancelled` | Subscription cancelled |
+| `user.added_to_tenant` | User joins tenant |
+| `user.removed_from_tenant` | User removed from tenant |
+| `api_key.created` | New API key created |
+| `api_key.revoked` | API key revoked |
+| `quota.exceeded` | Tenant hits quota limit |
+| `quota.warning` | Tenant at 80% of quota |
+| `*` | Wildcard: receive ALL events |
+
+### 18.2 Webhook Registration
+
+```
+Tenant Admin              Frontend                Orkait Auth
+    │                         │                        │
+    │  "Notify me when       │                        │
+    │   quota exceeded"      │                        │
+    │ ───────────────────────►│                        │
+    │                         │ POST /api/webhooks    │
+    │                         │ {url, events, secret} │
+    │                         │───────────────────────►│
+    │                         │                        │
+    │                         │                        │  Store endpoint
+    │                         │                        │
+    │                         │ {webhookId}            │
+    │                         │◄───────────────────────│
+```
+
+### 18.3 Event Delivery Flow
+
+```
+┌────────────────────┐
+│  Event Occurs      │  (e.g., quota exceeded)
+│  in Orkait Auth    │
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│  Find all webhooks │  Query: active webhooks subscribed
+│  subscribed to     │         to "quota.exceeded" or "*"
+│  this event        │
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│  Create webhook    │  Status: pending
+│  event record      │  Attempts: 0
+└─────────┬──────────┘
+          │
+          ▼ (async/scheduled)
+┌────────────────────┐
+│  Deliver to URL    │  POST to registered URL
+│  with payload      │  Include HMAC signature if secret set
+└─────────┬──────────┘
+          │
+          ├──── Success ──► Status: delivered
+          │
+          └──── Failure ──► Status: failed, increment attempts
+                            (retry logic can be added)
+```
+
+### 18.4 Webhook Payload Example
+
+```json
+POST https://your-app.com/webhooks/orkait
+Content-Type: application/json
+X-Webhook-Signature: sha256=abc123...  (if secret configured)
+
+{
+  "event": "quota.exceeded",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "tenantId": "tnt_xyz789",
+  "payload": {
+    "limit": 10000,
+    "used": 10001,
+    "period": "2024-01"
+  }
+}
+```
+
+### 18.5 Webhook Endpoints
+
+```bash
+# List available event types
+GET /api/webhooks/events
+
+# Register webhook
+POST /api/webhooks
+{
+  "url": "https://your-app.com/webhooks/orkait",
+  "events": ["quota.exceeded", "subscription.upgraded"],
+  "secret": "whsec_abc123"  # Optional, for HMAC validation
+}
+
+# List your webhooks
+GET /api/webhooks
+
+# Update webhook
+PATCH /api/webhooks/{id}
+{ "events": ["*"], "active": true }
+
+# Delete webhook
+DELETE /api/webhooks/{id}
+```
+
+### 18.6 Real-World Use Cases
+
+| Use Case | Events to Subscribe |
+|----------|---------------------|
+| Billing sync | `subscription.upgraded`, `subscription.downgraded` |
+| Usage alerts | `quota.warning`, `quota.exceeded` |
+| Audit logging | `*` (all events) |
+| User lifecycle | `user.added_to_tenant`, `user.removed_from_tenant` |
+| Security monitoring | `api_key.created`, `api_key.revoked` |
+
+---
+
+## 19. Complete Integration: How Everything Works Together
+
+Here's how all features integrate during a typical API request:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     AUTHORIZATION REQUEST                                │
+│  POST /api/authorize                                                     │
+│  {tenantId, userId, service, requiredFeature, quantity, apiKeyId}       │
+└───────────────────────────────────────┬─────────────────────────────────┘
+                                        │
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│ 1. SESSION CHECK                                                       │
+│    Is JWT valid? Is session active?                                    │
+└───────────────────────────────────────┬───────────────────────────────┘
+                                        │ ✓
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│ 2. FETCH OVERRIDES                                                     │
+│    Get active overrides for tenant (tier_upgrade, quota_boost, etc)   │
+└───────────────────────────────────────┬───────────────────────────────┘
+                                        │
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│ 3. SUBSCRIPTION CHECK                                                  │
+│    Is subscription active?                                             │
+│    Apply tier_upgrade override if present                              │
+└───────────────────────────────────────┬───────────────────────────────┘
+                                        │ ✓
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│ 4. SERVICE CHECK                                                       │
+│    Is this service enabled for subscription?                           │
+└───────────────────────────────────────┬───────────────────────────────┘
+                                        │ ✓
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│ 5. FEATURE FLAG CHECK                                                  │
+│    Is requiredFeature enabled for this tier?                          │
+│    Check feature_grant overrides                                       │
+│    Check deterministic rollout percentage                              │
+└───────────────────────────────────────┬───────────────────────────────┘
+                                        │ ✓
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│ 6. QUOTA CHECK                                                         │
+│    Check API key limit (if apiKeyId provided)                         │
+│    Check tenant global limit                                           │
+│    Apply quota_boost overrides                                         │
+│    Record usage if allowed                                             │
+│    If at 80%: emit quota.warning webhook                              │
+│    If exceeded: emit quota.exceeded webhook                            │
+└───────────────────────────────────────┬───────────────────────────────┘
+                                        │ ✓
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│ 7. ROLE CHECK                                                          │
+│    Does user have requiredRole in this tenant?                        │
+└───────────────────────────────────────┬───────────────────────────────┘
+                                        │ ✓
+                                        ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                           ✅ ALLOWED                                   │
+│  Response: {allowed: true, tier, role, quotaRemaining, ...}           │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 20. Quick Reference: Admin vs User Operations
+
+| Operation | Who Can Do It | Endpoint |
+|-----------|--------------|----------|
+| **Subscriptions** | | |
+| View subscription | Tenant member | `GET /api/subscriptions/{tenantId}` |
+| Upgrade tier | Tenant admin/owner | `POST /api/subscriptions/{tenantId}/upgrade` |
+| Downgrade tier | Tenant admin/owner | `POST /api/subscriptions/{tenantId}/downgrade` |
+| **Usage** | | |
+| View usage | Tenant member | `GET /api/subscriptions/usage/{tenantId}` |
+| Check quota | Any authenticated | `GET /api/subscriptions/usage/{tenantId}/quota` |
+| Record usage | Internal only | `POST /api/subscriptions/usage/record` |
+| **Feature Flags** | | |
+| Create/Update/Delete flags | System admin | `/api/admin/flags/*` |
+| Check if enabled | Internal (authorization) | via `AuthorizationService` |
+| **Overrides** | | |
+| Create/Update/Delete | System admin | `/api/admin/overrides/*` |
+| View active | System admin | `GET /api/admin/overrides/{tenantId}/active` |
+| **Webhooks** | | |
+| Register/Update/Delete | Tenant admin/owner | `/api/webhooks/*` |
+| List event types | Any authenticated | `GET /api/webhooks/events` |
+
+---
+
 That's the core of Orkait Auth! 🎉

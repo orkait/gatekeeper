@@ -1,14 +1,14 @@
 import type { AuthRepository } from '../../repositories';
 import type { ServiceResult } from '../../types';
 import { generateId, ok, err, nowMs } from '../shared';
-import type { 
-    CreateSubscriptionInput, 
-    Subscription, 
-    SubscriptionItem, 
-    SubscriptionStatus, 
-    SubscriptionTier, 
-    SubscriptionWithItems, 
-    UpdateSubscriptionInput 
+import type {
+    CreateSubscriptionInput,
+    Subscription,
+    SubscriptionItem,
+    SubscriptionStatus,
+    SubscriptionTier,
+    SubscriptionWithItems,
+    UpdateSubscriptionInput
 } from './types';
 
 interface SubscriptionRow {
@@ -33,14 +33,13 @@ interface SubscriptionItemRow {
     updated_at: number;
 }
 
-// Default subscription period (30 days).
 const DEFAULT_PERIOD_DAYS = 30;
 
 // SubscriptionService - Tenant subscription management.
 // Handles subscription creation, retrieval, and updates with tier
 // and period tracking.
 export class SubscriptionService {
-    constructor(private repository: AuthRepository) {}
+    constructor(private repository: AuthRepository) { }
 
     async createSubscription(
         input: CreateSubscriptionInput
@@ -245,7 +244,6 @@ export class SubscriptionService {
     // ========================================================================
     // Subscription Items (Per-Service Enablement)
     // ========================================================================
-
     async getSubscriptionWithItems(
         tenantId: string
     ): Promise<ServiceResult<SubscriptionWithItems>> {
@@ -368,7 +366,6 @@ export class SubscriptionService {
     // ========================================================================
     // Private Helpers
     // ========================================================================
-
     private mapRow(row: SubscriptionRow): Subscription {
         return {
             id: row.id,
@@ -381,7 +378,6 @@ export class SubscriptionService {
             cancelledAt: row.cancelled_at,
         };
     }
-
     private mapItemRow(row: SubscriptionItemRow): SubscriptionItem {
         return {
             id: row.id,

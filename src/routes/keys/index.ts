@@ -8,5 +8,5 @@ keysRoutes.route('/', handlersRouter);
 
 export default keysRoutes;
 
-export { requireTenantAdmin, type KeysAuthInfo } from './middleware';
+export { requireTenantAdmin, type KeysAuthInfo } from '../../middleware/auth-domain/keys';
 export * from './schemas';

@@ -1,6 +1,7 @@
 import type { AuthRepository } from '../../repositories';
 import type { ServiceResult } from '../../types';
 import { generateId, ok, err, nowMs, hashSHA256, generateRandomBytes, bytesToBase62 } from '../shared';
+import { API_KEY_PREFIX, API_KEY_RANDOM_BYTES, API_KEY_PREFIX_DISPLAY_LENGTH } from '../../constants/apikey';
 import type {
     ApiKey,
     ApiKeyCreateResult,
@@ -26,8 +27,6 @@ interface ApiKeyRow {
     revoked_at: number | null;
     created_at: number;
 }
-
-const KEY_PREFIX = 'oka_live_';
 
 // Keys are stored as SHA-256 hashes. The plaintext key is only returned
 // once during creation.
@@ -124,7 +123,7 @@ export class ApiKeyService {
 
     async validateApiKey(plainTextKey: string): Promise<ServiceResult<ApiKey>> {
         // Extract prefix to quick-reject invalid keys
-        if (!plainTextKey.startsWith(KEY_PREFIX)) {
+        if (!plainTextKey.startsWith(API_KEY_PREFIX)) {
             return err('Invalid API key format');
         }
 
@@ -223,20 +222,20 @@ export class ApiKeyService {
         keyHash: string;
         keyPrefix: string;
     }> {
-        // Generate 32 bytes of random data
-        const bytes = generateRandomBytes(32);
+        // Generate random bytes
+        const bytes = generateRandomBytes(API_KEY_RANDOM_BYTES);
 
         // Convert to base62
         const randomPart = bytesToBase62(bytes);
 
         // Create the full key
-        const plainTextKey = `${KEY_PREFIX}${randomPart}`;
+        const plainTextKey = `${API_KEY_PREFIX}${randomPart}`;
 
         // Hash the key for storage
         const keyHash = await hashSHA256(plainTextKey);
 
-        // Store a prefix for identification (first 8 chars of random part)
-        const keyPrefix = `${KEY_PREFIX}${randomPart.slice(0, 8)}`;
+        // Store a prefix for identification
+        const keyPrefix = `${API_KEY_PREFIX}${randomPart.slice(0, API_KEY_PREFIX_DISPLAY_LENGTH)}`;
 
         return { plainTextKey, keyHash, keyPrefix };
     }

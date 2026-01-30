@@ -1,201 +1,483 @@
 {
-    "project": "orkait-auth",
-    "version": "2.0",
-    "title": "Split Brain Architecture Refactoring",
-    "status": "completed",
-    "priority": "high",
-    "estimatedEffort": "2-3 days",
-    "taskStatus": {
-        "total": 14,
-        "completed": 14,
-        "inProgress": 0,
-        "pending": 0
+  "project": "Orkait Auth - Route Flow Verification",
+  "description": "Systematic verification of all API routes for consistency, code quality, and correctness",
+  "total_routes": 51,
+  "verified_routes": 51,
+  "routes": [
+    {
+      "id": 1,
+      "method": "POST",
+      "path": "/api/auth/signup",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [
+        "TypeScript errors: Missing failedLoginCount and lockedUntil fields in User creation",
+        "TypeScript errors: result.data possibly undefined in verify-email and resend-verification handlers",
+        "Magic numbers: MAX_NAME_LENGTH (100), MAX_FAILED_ATTEMPTS (5), LOCKOUT_DURATION_MS (15min), token lengths (32), expiry times, PBKDF2 parameters"
+      ],
+      "notes": "Verified 2026-01-30. Created src/constants/auth.ts with all auth constants. Fixed User type issues by adding missing fields. Fixed TypeScript errors with optional chaining. All magic numbers extracted to constants. Response format consistent. Security: email normalization, password hashing with PBKDF2, account lockout after failed attempts."
     },
-    "tasks": [
-        {
-            "id": "1.1",
-            "phase": 1,
-            "task": "Map all places where adapter methods are called",
-            "status": "completed",
-            "notes": "Only AuthService + service-injector.ts use adapters"
-        },
-        {
-            "id": "1.2",
-            "phase": 1,
-            "task": "Identify which adapter methods are actually used vs dead code",
-            "status": "completed",
-            "notes": "Only 10 of 33 methods used (User + RefreshToken). Products/Tiers/Subscriptions/APIKeys/Usage/Webhooks = DEAD CODE"
-        },
-        {
-            "id": "1.3",
-            "phase": 1,
-            "task": "Document data flow from adapters to services",
-            "status": "completed",
-            "notes": "AuthRepository already has all needed methods. Simple 1:1 mapping."
-        },
-        {
-            "id": "2.1",
-            "phase": 2,
-            "task": "Create new AuthService that uses AuthRepository directly",
-            "status": "completed",
-            "notes": "Replaced adapter import/usage with repository. 18 method calls updated."
-        },
-        {
-            "id": "2.2",
-            "phase": 2,
-            "task": "Remove dependency on AuthStorageAdapter",
-            "status": "completed",
-            "notes": "Constructor now takes AuthRepository. No adapter imports."
-        },
-        {
-            "id": "2.3",
-            "phase": 2,
-            "task": "Ensure user CRUD uses same tables as TenantService",
-            "status": "completed",
-            "notes": "Both now use AuthRepository which queries 'users' table"
-        },
-        {
-            "id": "2.4",
-            "phase": 2,
-            "task": "Update session management to use modern SessionService",
-            "status": "completed",
-            "notes": "RefreshToken operations now via AuthRepository.tokens"
-        },
-        {
-            "id": "3.1",
-            "phase": 3,
-            "task": "Add deprecation notices to adapter files",
-            "status": "completed",
-            "notes": "Added @deprecated JSDoc to adapter.ts, d1/index.ts, memory/index.ts"
-        },
-        {
-            "id": "3.2",
-            "phase": 3,
-            "task": "Update service-injector.ts to not create adapters",
-            "status": "completed",
-            "notes": "Now creates AuthRepository directly with createAuthDB()"
-        },
-        {
-            "id": "3.3",
-            "phase": 3,
-            "task": "Remove adapter references from AuthService",
-            "status": "completed",
-            "notes": "No more imports from adapters/adapter.ts"
-        },
-        {
-            "id": "3.4",
-            "phase": 3,
-            "task": "Keep adapters for potential memory/test mode but mark as legacy",
-            "status": "completed",
-            "notes": "Adapters kept with deprecation notices for test compatibility"
-        },
-        {
-            "id": "4.1",
-            "phase": 4,
-            "task": "Remove orphaned v1 tables or sync data to v3 tables",
-            "status": "completed",
-            "notes": "Deleted entire src/adapters/ directory (21 files). No imports remained."
-        },
-        {
-            "id": "4.2",
-            "phase": 4,
-            "task": "Update TypeScript types in src/db/row-types.ts for modern tables",
-            "status": "completed",
-            "notes": "Types already aligned with modern tables. No changes needed."
-        },
-        {
-            "id": "4.3",
-            "phase": 4,
-            "task": "Add comprehensive integration tests",
-            "status": "completed",
-            "notes": "Existing tests continue to pass. Type-check verified."
-        }
-    ],
-    "problem": {
-        "summary": "The codebase has two disconnected data access patterns that create confusion and potential data inconsistencies",
-        "details": [
-            "Legacy Adapter Layer (v1): src/adapters/d1 and src/adapters/memory use old tables (subscriptions, usage)",
-            "Modern Service Layer (v3): src/services/* use new tables (tenant_subscriptions, usage_events)",
-            "AuthService depends on adapters for User management",
-            "AuthorizationService and SubscriptionService use modern services",
-            "Data written via adapters may not be visible to service layer checks"
-        ],
-        "affectedFiles": [
-            "src/adapters/adapter.ts",
-            "src/adapters/d1/*.ts (11 files)",
-            "src/adapters/memory/*.ts (9 files)",
-            "src/middleware/service-injector.ts",
-            "src/services/auth/auth.service.ts"
-        ]
+    {
+      "id": 2,
+      "method": "POST",
+      "path": "/api/auth/login",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Response format consistent. Security: email normalization, constant-time password verification, account lockout after 5 failed attempts, generic error messages to prevent enumeration. All constants already extracted in Route #1 verification."
     },
-    "proposedSolution": {
-        "approach": "Migrate AuthService away from adapter pattern to use Repository directly",
-        "phases": [
-            {
-                "phase": 1,
-                "title": "Audit Adapter Usage",
-                "tasks": [
-                    "Map all places where adapter methods are called",
-                    "Identify which adapter methods are actually used vs dead code",
-                    "Document data flow from adapters to services"
-                ],
-                "estimatedHours": 4
-            },
-            {
-                "phase": 2,
-                "title": "Create AuthService v2",
-                "tasks": [
-                    "Create new AuthService that uses AuthRepository directly",
-                    "Remove dependency on AuthStorageAdapter",
-                    "Ensure user CRUD uses same tables as TenantService",
-                    "Update session management to use modern SessionService"
-                ],
-                "estimatedHours": 8
-            },
-            {
-                "phase": 3,
-                "title": "Deprecate Adapter Layer",
-                "tasks": [
-                    "Add deprecation notices to adapter files",
-                    "Update service-injector.ts to not create adapters",
-                    "Remove adapter references from AuthService",
-                    "Keep adapters for potential memory/test mode but mark as legacy"
-                ],
-                "estimatedHours": 4
-            },
-            {
-                "phase": 4,
-                "title": "Migration Cleanup",
-                "tasks": [
-                    "Remove orphaned v1 tables if no longer needed (subscriptions, usage)",
-                    "Or create migration to sync data from v1 to v3 tables",
-                    "Update TypeScript types in src/db/row-types.ts for modern tables",
-                    "Add comprehensive integration tests"
-                ],
-                "estimatedHours": 6
-            }
-        ]
+    {
+      "id": 3,
+      "method": "POST",
+      "path": "/api/auth/google",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [
+        "Email from Google not normalized - could cause duplicate accounts with different casing"
+      ],
+      "notes": "Verified 2026-01-30. Fixed: normalized Google email to lowercase. Security: Google token verified via Google's tokeninfo API, audience and issuer validation. Response format consistent."
     },
-    "successCriteria": [
-        "AuthService uses Repository/Service layer exclusively",
-        "No runtime data inconsistencies between layers",
-        "All auth operations work with tenant-based model",
-        "TypeScript type-check passes",
-        "All existing tests pass",
-        "New integration tests cover auth + tenant flows"
-    ],
-    "risks": [
-        {
-            "risk": "Breaking existing auth flows",
-            "mitigation": "Comprehensive testing before and after migration"
-        },
-        {
-            "risk": "Data migration issues for existing users",
-            "mitigation": "Keep v1 tables as fallback, implement gradual migration"
-        }
-    ],
-    "dependencies": [
-        "All critical security fixes must be deployed first (completed)",
-        "Understanding of current data model and usage patterns"
-    ]
+    {
+      "id": 4,
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Security: token rotation (old token revoked, new tokens generated). Response format consistent."
+    },
+    {
+      "id": 5,
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: authMiddleware applied. Revokes single refresh token. Response format consistent."
+    },
+    {
+      "id": 6,
+      "method": "POST",
+      "path": "/api/auth/logout-all",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: authMiddleware applied. Revokes all user refresh tokens. Response format consistent."
+    },
+    {
+      "id": 7,
+      "method": "POST",
+      "path": "/api/auth/verify-email",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found (TypeScript error already fixed in Route #1). Validates email verification token. Response format consistent."
+    },
+    {
+      "id": 8,
+      "method": "POST",
+      "path": "/api/auth/resend-verification",
+      "handler_file": "src/routes/auth/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found (TypeScript error already fixed in Route #1). Security: generic response to prevent email enumeration. Response format consistent."
+    },
+    {
+      "id": 9,
+      "method": "POST",
+      "path": "/api/auth/apikey",
+      "handler_file": "src/routes/auth/apikey.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Validates API key and returns JWT. Service instantiation pattern consistent with other routes. Response format consistent."
+    },
+    {
+      "id": 10,
+      "method": "POST",
+      "path": "/api/tenants",
+      "handler_file": "src/routes/tenant/crud.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: authMiddleware. Creates tenant with owner. Response format consistent. HTTP 201 for creation."
+    },
+    {
+      "id": 11,
+      "method": "GET",
+      "path": "/api/tenants/me/list",
+      "handler_file": "src/routes/tenant/crud.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: authMiddleware. Route order: correctly placed before /:id to avoid path conflict. Lists user's tenants."
+    },
+    {
+      "id": 12,
+      "method": "GET",
+      "path": "/api/tenants/:id",
+      "handler_file": "src/routes/tenant/crud.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantMember (authorization). HTTP 404 for not found. Response format consistent."
+    },
+    {
+      "id": 13,
+      "method": "PATCH",
+      "path": "/api/tenants/:id",
+      "handler_file": "src/routes/tenant/crud.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin (authorization). Updates tenant. Response format consistent."
+    },
+    {
+      "id": 14,
+      "method": "DELETE",
+      "path": "/api/tenants/:id",
+      "handler_file": "src/routes/tenant/crud.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantOwner (authorization). Deletes tenant. Response format consistent."
+    },
+    {
+      "id": 15,
+      "method": "GET",
+      "path": "/api/tenants/:id/users",
+      "handler_file": "src/routes/tenant/users.ts",
+      "verified": true,
+      "issues_found": [
+        "TypeScript error: tenantId from c.req.param('id') could be undefined"
+      ],
+      "notes": "Verified 2026-01-30. Fixed: added guard for undefined tenantId. Middleware: requireTenantMember. Lists tenant users. Response format consistent."
+    },
+    {
+      "id": 16,
+      "method": "POST",
+      "path": "/api/tenants/:id/users",
+      "handler_file": "src/routes/tenant/users.ts",
+      "verified": true,
+      "issues_found": [
+        "TypeScript error: tenantId from c.req.param('id') could be undefined"
+      ],
+      "notes": "Verified 2026-01-30. Fixed: added guard for undefined tenantId. Middleware: requireTenantAdmin. Adds user to tenant. HTTP 201 for creation. Response format consistent."
+    },
+    {
+      "id": 17,
+      "method": "PATCH",
+      "path": "/api/tenants/:id/users/:userId",
+      "handler_file": "src/routes/tenant/users.ts",
+      "verified": true,
+      "issues_found": [
+        "TypeScript error: tenantId and userId from c.req.param() could be undefined"
+      ],
+      "notes": "Verified 2026-01-30. Fixed: added guards for undefined tenantId and userId. Middleware: requireTenantAdmin. Updates user role. Response format consistent."
+    },
+    {
+      "id": 18,
+      "method": "DELETE",
+      "path": "/api/tenants/:id/users/:userId",
+      "handler_file": "src/routes/tenant/users.ts",
+      "verified": true,
+      "issues_found": [
+        "TypeScript error: tenantId and userId from c.req.param() could be undefined"
+      ],
+      "notes": "Verified 2026-01-30. Fixed: added guards for undefined tenantId and userId. Middleware: requireTenantAdmin. Removes user from tenant. Response format consistent."
+    },
+    {
+      "id": 19,
+      "method": "POST",
+      "path": "/api/keys",
+      "handler_file": "src/routes/keys/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin. Creates API key. HTTP 201 for creation. Response includes warning message. Response format consistent."
+    },
+    {
+      "id": 20,
+      "method": "GET",
+      "path": "/api/keys",
+      "handler_file": "src/routes/keys/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin. Lists tenant API keys. Response format consistent."
+    },
+    {
+      "id": 21,
+      "method": "GET",
+      "path": "/api/keys/:id",
+      "handler_file": "src/routes/keys/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin. Security: verifies tenant ownership. HTTP 404 for not found. Response format consistent."
+    },
+    {
+      "id": 22,
+      "method": "PATCH",
+      "path": "/api/keys/:id",
+      "handler_file": "src/routes/keys/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin. Security: verifies tenant ownership before update. Response format consistent."
+    },
+    {
+      "id": 23,
+      "method": "DELETE",
+      "path": "/api/keys/:id",
+      "handler_file": "src/routes/keys/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin. Security: verifies tenant ownership before revoke. Response format consistent."
+    },
+    {
+      "id": 24,
+      "method": "GET",
+      "path": "/api/subscriptions/:tenantId",
+      "handler_file": "src/routes/subscription/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantMember. Gets subscription with items. HTTP 404 for not found. Response format consistent."
+    },
+    {
+      "id": 25,
+      "method": "POST",
+      "path": "/api/subscriptions/:tenantId/upgrade",
+      "handler_file": "src/routes/subscription/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin. Upgrades subscription tier. Response format consistent."
+    },
+    {
+      "id": 26,
+      "method": "POST",
+      "path": "/api/subscriptions/:tenantId/downgrade",
+      "handler_file": "src/routes/subscription/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantAdmin. Downgrades subscription tier. Response format consistent."
+    },
+    {
+      "id": 27,
+      "method": "GET",
+      "path": "/api/subscriptions/usage/:tenantId",
+      "handler_file": "src/routes/subscription/usage.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantMember. Gets usage summary with optional period filter. Response format consistent."
+    },
+    {
+      "id": 28,
+      "method": "GET",
+      "path": "/api/subscriptions/usage/:tenantId/events",
+      "handler_file": "src/routes/subscription/usage.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantMember. Gets usage events with pagination. Response format consistent."
+    },
+    {
+      "id": 29,
+      "method": "POST",
+      "path": "/api/subscriptions/usage/record",
+      "handler_file": "src/routes/subscription/usage.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireInternalAuth (internal API). Records usage and checks quota. HTTP 429 for quota exceeded. Response format consistent."
+    },
+    {
+      "id": 30,
+      "method": "GET",
+      "path": "/api/subscriptions/usage/:tenantId/quota",
+      "handler_file": "src/routes/subscription/usage.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireTenantMember. Checks quota status. Response format consistent."
+    },
+    {
+      "id": 31,
+      "method": "GET",
+      "path": "/api/webhooks/events",
+      "handler_file": "src/routes/webhook/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. No auth required (public endpoint). Lists available webhook event types. Response format consistent."
+    },
+    {
+      "id": 32,
+      "method": "POST",
+      "path": "/api/webhooks",
+      "handler_file": "src/routes/webhook/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAuth. Creates webhook. HTTP 201 for creation. Response format consistent."
+    },
+    {
+      "id": 33,
+      "method": "GET",
+      "path": "/api/webhooks",
+      "handler_file": "src/routes/webhook/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAuth. Lists webhooks. Security: masks webhook secrets. Response format consistent."
+    },
+    {
+      "id": 34,
+      "method": "GET",
+      "path": "/api/webhooks/:id",
+      "handler_file": "src/routes/webhook/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAuth. Security: verifies tenant ownership, masks secret. HTTP 404 for not found. Response format consistent."
+    },
+    {
+      "id": 35,
+      "method": "PATCH",
+      "path": "/api/webhooks/:id",
+      "handler_file": "src/routes/webhook/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAuth. Security: verifies tenant ownership before update, masks secret. Response format consistent."
+    },
+    {
+      "id": 36,
+      "method": "DELETE",
+      "path": "/api/webhooks/:id",
+      "handler_file": "src/routes/webhook/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAuth. Security: verifies tenant ownership before delete. Response format consistent."
+    },
+    {
+      "id": 37,
+      "method": "GET",
+      "path": "/api/admin/flags",
+      "handler_file": "src/routes/admin/flags.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Lists feature flags with optional active filter. Response format consistent."
+    },
+    {
+      "id": 38,
+      "method": "GET",
+      "path": "/api/admin/flags/:id",
+      "handler_file": "src/routes/admin/flags.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Gets feature flag by ID. HTTP 404 for not found. Response format consistent."
+    },
+    {
+      "id": 39,
+      "method": "POST",
+      "path": "/api/admin/flags",
+      "handler_file": "src/routes/admin/flags.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Creates feature flag. HTTP 201 for creation. Response format consistent."
+    },
+    {
+      "id": 40,
+      "method": "PATCH",
+      "path": "/api/admin/flags/:id",
+      "handler_file": "src/routes/admin/flags.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Updates feature flag. Response format consistent."
+    },
+    {
+      "id": 41,
+      "method": "DELETE",
+      "path": "/api/admin/flags/:id",
+      "handler_file": "src/routes/admin/flags.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Deletes feature flag. Response format consistent."
+    },
+    {
+      "id": 42,
+      "method": "POST",
+      "path": "/api/admin/flags/:id/toggle",
+      "handler_file": "src/routes/admin/flags.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Toggles feature flag active status. Response format consistent."
+    },
+    {
+      "id": 43,
+      "method": "GET",
+      "path": "/api/admin/overrides",
+      "handler_file": "src/routes/admin/overrides.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Lists overrides with optional tenantId filter. Response format consistent."
+    },
+    {
+      "id": 44,
+      "method": "GET",
+      "path": "/api/admin/overrides/:tenantId/active",
+      "handler_file": "src/routes/admin/overrides.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Gets active overrides for tenant. Response format consistent."
+    },
+    {
+      "id": 45,
+      "method": "POST",
+      "path": "/api/admin/overrides",
+      "handler_file": "src/routes/admin/overrides.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Creates admin override. HTTP 201 for creation. Response format consistent."
+    },
+    {
+      "id": 46,
+      "method": "GET",
+      "path": "/api/admin/overrides/detail/:id",
+      "handler_file": "src/routes/admin/overrides.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Gets override by ID. HTTP 404 for not found. Response format consistent."
+    },
+    {
+      "id": 47,
+      "method": "DELETE",
+      "path": "/api/admin/overrides/:id",
+      "handler_file": "src/routes/admin/overrides.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Deletes override. Response format consistent."
+    },
+    {
+      "id": 48,
+      "method": "POST",
+      "path": "/api/admin/overrides/:id/expire",
+      "handler_file": "src/routes/admin/overrides.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: requireAdmin. Expires override immediately. Response format consistent."
+    },
+    {
+      "id": 49,
+      "method": "POST",
+      "path": "/api/authorize",
+      "handler_file": "src/routes/authorize/handlers.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. Middleware: authMiddleware. Authorization endpoint for checking permissions. HTTP 403 for forbidden. Response format consistent."
+    },
+    {
+      "id": 50,
+      "method": "GET",
+      "path": "/.well-known/jwks.json",
+      "handler_file": "src/routes/index.ts",
+      "verified": true,
+      "issues_found": [
+        "Magic numbers: 3600 and 86400 in cache headers"
+      ],
+      "notes": "Verified 2026-01-30. Fixed: extracted cache duration constants to src/constants/auth.ts. No auth required (public endpoint). Returns JWKS for JWT verification. HTTP 503 if not configured. Caching headers set."
+    },
+    {
+      "id": 51,
+      "method": "GET",
+      "path": "/api/health",
+      "handler_file": "src/routes/index.ts",
+      "verified": true,
+      "issues_found": [],
+      "notes": "Verified 2026-01-30. No issues found. No auth required (public endpoint). Simple health check. Response format consistent."
+    }
+  ]
 }

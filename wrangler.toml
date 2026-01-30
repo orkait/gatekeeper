@@ -9,13 +9,13 @@ compatibility_flags = ["nodejs_compat"]
 # D1 Database
 [[d1_databases]]
 binding = "DB"
-database_name = "orkait_identity_service"
-database_id = "b1d4f7ad-b6b1-47dc-8ed9-e8b52348a5f4"
+database_name = "orkait-auth-db"
+database_id = "8c6a130e-f248-4f93-a4b3-d7cd79a928ef"
 
 # KV Namespace for auth decision caching (fallback on D1 outage)
 [[kv_namespaces]]
 binding = "AUTH_CACHE"
-id = "169f14ca07cc403e9774e179b0ec457b"
+id = "b4b9fecdd50b458cb1b3d005c91d6427"
 
 # R2 Bucket for backups
 [[r2_buckets]]

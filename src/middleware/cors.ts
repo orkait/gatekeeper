@@ -6,6 +6,8 @@ const ALLOWED_HEADERS = ["Content-Type", "Authorization", "X-API-Key", "X-Intern
 const EXPOSED_HEADERS = ["X-RateLimit-Remaining", "X-RateLimit-Reset"];
 const MAX_AGE = 86400;
 
+const corsMiddlewareCache = new Map<string, ReturnType<typeof cors>>();
+
 export function createCorsMiddleware(config: EnvConfig) {
     return cors({
         origin: config.allowedOrigins.includes("*")
@@ -17,4 +19,16 @@ export function createCorsMiddleware(config: EnvConfig) {
         maxAge: MAX_AGE,
         credentials: true,
     });
+}
+
+export function getCorsMiddleware(config: EnvConfig) {
+    const key = config.allowedOrigins.join(",");
+    const cached = corsMiddlewareCache.get(key);
+    if (cached) {
+        return cached;
+    }
+
+    const middleware = createCorsMiddleware(config);
+    corsMiddlewareCache.set(key, middleware);
+    return middleware;
 }

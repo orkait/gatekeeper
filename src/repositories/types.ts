@@ -2,6 +2,7 @@
 export type {
     UserRow,
     RefreshTokenRow,
+    EmailVerificationTokenRow,
     TenantRow,
     TenantUserRow,
     SessionRow,

@@ -1,11 +1,9 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '../../env';
-import { getEnv } from '../../env';
-import { AuthRepository } from '../../repositories';
-import { createAuthDB } from '../../utils/db';
 import { ApiKeyService } from '../../services/apikey';
-import { requireTenantAdmin } from './middleware';
+import { requireTenantAdmin } from '../../middleware/auth-domain/keys';
 import { CreateApiKeySchema, UpdateApiKeySchema } from './schemas';
 
 const handlersRouter = new Hono<AppEnv>();
@@ -13,15 +11,20 @@ const handlersRouter = new Hono<AppEnv>();
 handlersRouter.post(
     '/',
     requireTenantAdmin,
-    zValidator('json', CreateApiKeySchema),
+    zValidator('json', CreateApiKeySchema, (result, _c) => {
+        if (!result.success) {
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
+        }
+    }),
     async (c) => {
-        const env = getEnv(c.env);
         const input = c.req.valid('json');
         const userId = c.get('userId') as string;
         const tenantId = c.get('tenantId') as string;
 
-        const authDB = createAuthDB(env.db);
-        const repository = new AuthRepository(authDB);
+        const repository = c.get('authRepository');
         const apiKeyService = new ApiKeyService(repository);
 
         const result = await apiKeyService.createApiKey({
@@ -35,7 +38,7 @@ handlersRouter.post(
         });
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'API key create failed' });
         }
 
         return c.json({
@@ -47,17 +50,15 @@ handlersRouter.post(
 );
 
 handlersRouter.get('/', requireTenantAdmin, async (c) => {
-    const env = getEnv(c.env);
     const tenantId = c.get('tenantId') as string;
 
-    const authDB = createAuthDB(env.db);
-    const repository = new AuthRepository(authDB);
+    const repository = c.get('authRepository');
     const apiKeyService = new ApiKeyService(repository);
 
     const result = await apiKeyService.listApiKeys(tenantId);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 400);
+        throw new HTTPException(400, { message: result.error || 'Failed to list API keys' });
     }
 
     return c.json({
@@ -67,22 +68,20 @@ handlersRouter.get('/', requireTenantAdmin, async (c) => {
 });
 
 handlersRouter.get('/:id', requireTenantAdmin, async (c) => {
-    const env = getEnv(c.env);
     const id = c.req.param('id');
     const tenantId = c.get('tenantId') as string;
 
-    const authDB = createAuthDB(env.db);
-    const repository = new AuthRepository(authDB);
+    const repository = c.get('authRepository');
     const apiKeyService = new ApiKeyService(repository);
 
     const result = await apiKeyService.getApiKey(id);
 
     if (!result.success || !result.data) {
-        return c.json({ success: false, error: result.error || 'API key not found' }, 404);
+        throw new HTTPException(404, { message: result.error || 'API key not found' });
     }
 
     if (result.data.tenantId !== tenantId) {
-        return c.json({ success: false, error: 'API key not found' }, 404);
+        throw new HTTPException(404, { message: 'API key not found' });
     }
 
     return c.json({
@@ -94,26 +93,31 @@ handlersRouter.get('/:id', requireTenantAdmin, async (c) => {
 handlersRouter.patch(
     '/:id',
     requireTenantAdmin,
-    zValidator('json', UpdateApiKeySchema),
+    zValidator('json', UpdateApiKeySchema, (result, _c) => {
+        if (!result.success) {
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
+        }
+    }),
     async (c) => {
-        const env = getEnv(c.env);
         const id = c.req.param('id');
         const input = c.req.valid('json');
         const tenantId = c.get('tenantId') as string;
 
-        const authDB = createAuthDB(env.db);
-        const repository = new AuthRepository(authDB);
+        const repository = c.get('authRepository');
         const apiKeyService = new ApiKeyService(repository);
 
         const existing = await apiKeyService.getApiKey(id);
         if (!existing.success || !existing.data || existing.data.tenantId !== tenantId) {
-            return c.json({ success: false, error: 'API key not found' }, 404);
+            throw new HTTPException(404, { message: 'API key not found' });
         }
 
         const result = await apiKeyService.updateApiKey(id, input);
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'API key update failed' });
         }
 
         return c.json({
@@ -124,23 +128,21 @@ handlersRouter.patch(
 );
 
 handlersRouter.delete('/:id', requireTenantAdmin, async (c) => {
-    const env = getEnv(c.env);
     const id = c.req.param('id');
     const tenantId = c.get('tenantId') as string;
 
-    const authDB = createAuthDB(env.db);
-    const repository = new AuthRepository(authDB);
+    const repository = c.get('authRepository');
     const apiKeyService = new ApiKeyService(repository);
 
     const existing = await apiKeyService.getApiKey(id);
     if (!existing.success || !existing.data || existing.data.tenantId !== tenantId) {
-        return c.json({ success: false, error: 'API key not found' }, 404);
+        throw new HTTPException(404, { message: 'API key not found' });
     }
 
     const result = await apiKeyService.revokeApiKey(id);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 400);
+        throw new HTTPException(400, { message: result.error || 'API key revoke failed' });
     }
 
     return c.json({

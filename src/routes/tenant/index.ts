@@ -10,5 +10,5 @@ tenantRoutes.route('/:id/users', usersRouter);
 
 export default tenantRoutes;
 
-export { requireAuth, requireTenantAdmin, type TenantAuthInfo } from './middleware';
+export { requireTenantMember, requireTenantAdmin, requireTenantOwner } from '../../middleware/auth-domain/tenant';
 export * from './schemas';

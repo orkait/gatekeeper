@@ -1,44 +1,38 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '../../env';
-import { getEnv } from '../../env';
-import { AuthRepository } from '../../repositories';
-import { createAuthDB } from '../../utils/db';
 import { FeatureFlagService } from '../../services/featureflag';
-import { requireAdmin } from './middleware';
+import { requireAdmin } from '../../middleware/auth-domain/admin';
 import { CreateFeatureFlagSchema, UpdateFeatureFlagSchema } from './schemas';
 
 const flagsRouter = new Hono<AppEnv>();
 
 flagsRouter.get('/', requireAdmin, async (c) => {
-    const env = getEnv(c.env);
     const activeOnly = c.req.query('active') === 'true';
 
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const flagService = new FeatureFlagService(repository);
 
     const result = await flagService.listFeatureFlags(activeOnly);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 500);
+        throw new HTTPException(500, { message: result.error || 'Failed to load feature flags' });
     }
 
     return c.json({ success: true, data: result.data });
 });
 
 flagsRouter.get('/:id', requireAdmin, async (c) => {
-    const env = getEnv(c.env);
     const flagId = c.req.param('id');
 
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const flagService = new FeatureFlagService(repository);
 
     const result = await flagService.getFeatureFlag(flagId);
 
     if (!result.success || !result.data) {
-        return c.json({ success: false, error: result.error || 'Feature flag not found' }, 404);
+        throw new HTTPException(404, { message: result.error || 'Feature flag not found' });
     }
 
     return c.json({ success: true, data: result.data });
@@ -47,27 +41,24 @@ flagsRouter.get('/:id', requireAdmin, async (c) => {
 flagsRouter.post(
     '/',
     requireAdmin,
-    zValidator('json', CreateFeatureFlagSchema, (result, c) => {
+    zValidator('json', CreateFeatureFlagSchema, (result, _c) => {
         if (!result.success) {
-            return c.json({
-                success: false,
-                error: 'Validation failed',
-                details: result.error.flatten(),
-            }, 400);
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
         }
     }),
     async (c) => {
-        const env = getEnv(c.env);
         const body = c.req.valid('json');
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const flagService = new FeatureFlagService(repository);
 
         const result = await flagService.createFeatureFlag(body);
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Feature flag create failed' });
         }
 
         return c.json({ success: true, data: result.data }, 201);
@@ -77,28 +68,25 @@ flagsRouter.post(
 flagsRouter.patch(
     '/:id',
     requireAdmin,
-    zValidator('json', UpdateFeatureFlagSchema, (result, c) => {
+    zValidator('json', UpdateFeatureFlagSchema, (result, _c) => {
         if (!result.success) {
-            return c.json({
-                success: false,
-                error: 'Validation failed',
-                details: result.error.flatten(),
-            }, 400);
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
         }
     }),
     async (c) => {
-        const env = getEnv(c.env);
         const flagId = c.req.param('id');
         const body = c.req.valid('json');
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const flagService = new FeatureFlagService(repository);
 
         const result = await flagService.updateFeatureFlag(flagId, body);
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Feature flag update failed' });
         }
 
         return c.json({ success: true, data: result.data });
@@ -106,34 +94,30 @@ flagsRouter.patch(
 );
 
 flagsRouter.delete('/:id', requireAdmin, async (c) => {
-    const env = getEnv(c.env);
     const flagId = c.req.param('id');
 
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const flagService = new FeatureFlagService(repository);
 
     const result = await flagService.deleteFeatureFlag(flagId);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 400);
+        throw new HTTPException(400, { message: result.error || 'Feature flag delete failed' });
     }
 
     return c.json({ success: true, message: 'Feature flag deleted' });
 });
 
 flagsRouter.post('/:id/toggle', requireAdmin, async (c) => {
-    const env = getEnv(c.env);
     const flagId = c.req.param('id');
 
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const flagService = new FeatureFlagService(repository);
 
     const result = await flagService.toggleFeatureFlag(flagId);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 400);
+        throw new HTTPException(400, { message: result.error || 'Feature flag toggle failed' });
     }
 
     return c.json({ success: true, data: result.data });

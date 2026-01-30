@@ -14,5 +14,5 @@ authRoutes.route('/apikey', apikeyRouter);
 
 export default authRoutes;
 
-export { authMiddleware, internalAuthMiddleware, getAuth, type AuthContext } from './middleware';
+export { authMiddleware, internalAuthMiddleware, getAuth, type AuthContext } from '../../middleware/auth-domain/core';
 export * from './schemas';

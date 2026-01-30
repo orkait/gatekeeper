@@ -1,33 +1,26 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '../../env';
-import { getEnv } from '../../env';
-import { AuthRepository } from '../../repositories';
-import { createAuthDB } from '../../utils/db';
 import { TenantService } from '../../services/tenant';
-import { requireAuth, requireTenantAdmin, type TenantAuthInfo } from './middleware';
+import { requireTenantAdmin, requireTenantMember } from '../../middleware/auth-domain/tenant';
 import { AddUserSchema, UpdateUserRoleSchema } from './schemas';
 
 const usersRouter = new Hono<AppEnv>();
 
-usersRouter.get('/', requireAuth, async (c) => {
-    const env = getEnv(c.env);
-    const auth = c.get('auth') as TenantAuthInfo;
+usersRouter.get('/', requireTenantMember, async (c) => {
     const tenantId = c.req.param('id');
-
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
-    const tenantService = new TenantService(repository);
-
-    const tenantUser = await repository.getTenantUser(tenantId, auth.userId);
-    if (!tenantUser) {
-        return c.json({ success: false, error: 'Tenant not found or access denied' }, 404);
+    if (!tenantId) {
+        throw new HTTPException(400, { message: 'Tenant ID is required' });
     }
+
+    const repository = c.get('authRepository');
+    const tenantService = new TenantService(repository);
 
     const result = await tenantService.getTenantUsers(tenantId);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 500);
+        throw new HTTPException(500, { message: result.error || 'Failed to load tenant users' });
     }
 
     return c.json({ success: true, data: result.data });
@@ -35,27 +28,23 @@ usersRouter.get('/', requireAuth, async (c) => {
 
 usersRouter.post(
     '/',
-    requireAuth,
     requireTenantAdmin,
-    zValidator('json', AddUserSchema, (result, c) => {
+    zValidator('json', AddUserSchema, (result, _c) => {
         if (!result.success) {
-            return c.json({
-                success: false,
-                error: 'Validation failed',
-                details: result.error.flatten(),
-            }, 400);
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
         }
     }),
     async (c) => {
-        const env = getEnv(c.env);
         const tenantId = c.req.param('id');
         if (!tenantId) {
-            return c.json({ success: false, error: 'Tenant ID is required' }, 400);
+            throw new HTTPException(400, { message: 'Tenant ID is required' });
         }
         const body = c.req.valid('json');
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const tenantService = new TenantService(repository);
 
         const result = await tenantService.addUserToTenant({
@@ -65,7 +54,7 @@ usersRouter.post(
         });
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Failed to add user' });
         }
 
         return c.json({ success: true, data: result.data }, 201);
@@ -74,28 +63,27 @@ usersRouter.post(
 
 usersRouter.patch(
     '/:userId',
-    requireAuth,
     requireTenantAdmin,
-    zValidator('json', UpdateUserRoleSchema, (result, c) => {
+    zValidator('json', UpdateUserRoleSchema, (result, _c) => {
         if (!result.success) {
-            return c.json({
-                success: false,
-                error: 'Validation failed',
-                details: result.error.flatten(),
-            }, 400);
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
         }
     }),
     async (c) => {
-        const env = getEnv(c.env);
         const tenantId = c.req.param('id');
+        if (!tenantId) {
+            throw new HTTPException(400, { message: 'Tenant ID is required' });
+        }
         const userId = c.req.param('userId');
-        if (!tenantId || !userId) {
-            return c.json({ success: false, error: 'Tenant ID and User ID are required' }, 400);
+        if (!userId) {
+            throw new HTTPException(400, { message: 'User ID is required' });
         }
         const body = c.req.valid('json');
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const tenantService = new TenantService(repository);
 
         const result = await tenantService.updateTenantUserRole({
@@ -105,7 +93,7 @@ usersRouter.patch(
         });
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Failed to update user role' });
         }
 
         return c.json({ success: true, data: result.data });
@@ -114,21 +102,24 @@ usersRouter.patch(
 
 usersRouter.delete(
     '/:userId',
-    requireAuth,
     requireTenantAdmin,
     async (c) => {
-        const env = getEnv(c.env);
         const tenantId = c.req.param('id');
+        if (!tenantId) {
+            throw new HTTPException(400, { message: 'Tenant ID is required' });
+        }
         const userId = c.req.param('userId');
+        if (!userId) {
+            throw new HTTPException(400, { message: 'User ID is required' });
+        }
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const tenantService = new TenantService(repository);
 
         const result = await tenantService.removeUserFromTenant(tenantId, userId);
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Failed to remove user' });
         }
 
         return c.json({ success: true, message: 'User removed from tenant' });

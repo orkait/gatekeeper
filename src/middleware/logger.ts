@@ -11,6 +11,38 @@ export interface LogEntry {
     [key: string]: unknown;
 }
 
+const SENSITIVE_KEYS = new Set([
+    'authorization',
+    'token',
+    'accessToken',
+    'refreshToken',
+    'password',
+    'apiKey',
+    'secret',
+    'x-api-key',
+    'x-internal-secret',
+]);
+
+function redactSensitive(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(redactSensitive);
+    }
+
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => {
+                if (SENSITIVE_KEYS.has(key.toLowerCase())) {
+                    return [key, '[REDACTED]'];
+                }
+
+                return [key, redactSensitive(nestedValue)];
+            })
+        );
+    }
+
+    return value;
+}
+
 
 export interface Logger {
     debug(message: string, data?: Record<string, unknown>): void;
@@ -39,13 +71,15 @@ export function createLogger(
             return;
         }
 
+        const redactedContext = redactSensitive(context);
+        const redactedData = data ? redactSensitive(data) : undefined;
         const entry: LogEntry = {
             timestamp: new Date().toISOString(),
             level,
             requestId,
             message,
-            ...context,
-            ...data,
+            ...(typeof redactedContext === 'object' && redactedContext ? redactedContext : {}),
+            ...(typeof redactedData === 'object' && redactedData ? redactedData : {}),
         };
 
         console.log(JSON.stringify(entry));

@@ -44,7 +44,22 @@
       "Bash(powershell.exe -Command \"npm run type-check\")",
       "Bash(powershell.exe -Command \"npm run dev\")",
       "Bash(curl:*)",
-      "Bash(powershell.exe:*)"
+      "Bash(powershell.exe:*)",
+      "Bash(printf:*)",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; npx wrangler --version\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; ''d8025b5d72f5951be745a48acd58e29c0b142dc57cf361a4f6b70608ec865f93'' | npx wrangler secret put JWT_SECRET\")",
+      "Bash(powershell -Command \"cd C:\\\\codingFiles\\\\orkait\\\\orka-auth; ''8fcc38dee2315a5dd4479daf6fc79720b34027aa101c8f7f'' | npx wrangler secret put INTERNAL_SECRET\")",
+      "Bash(powershell -Command \"Invoke-RestMethod -Uri ''https://orkait-auth.aconite.workers.dev/api/auth/signup'' -Method POST -ContentType ''application/json'' -Body ''{\"\"email\"\":\"\"test-verify@example.com\"\",\"\"password\"\":\"\"TestPassword123!\"\",\"\"name\"\":\"\"Test User\"\"}''\")",
+      "Bash(powershell -Command \"$body = @{ email = ''test-verify@example.com''; password = ''TestPassword123!''; name = ''Test User'' } | ConvertTo-Json; Invoke-RestMethod -Uri ''https://orkait-auth.aconite.workers.dev/api/auth/signup'' -Method POST -ContentType ''application/json'' -Body $body\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File C:codingFilesorkaitorka-authtest-signup.ps1)",
+      "Bash(powershell:*)",
+      "Bash(npm install:*)",
+      "Bash(npx newman run:*)",
+      "Bash(tee:*)",
+      "Bash(tsc:*)",
+      "Bash(grep:*)",
+      "Bash(npx tsc:*)",
+      "Bash(done)"
     ]
   }
 }

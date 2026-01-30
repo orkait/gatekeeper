@@ -1,51 +1,37 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '../../env';
-import { getEnv } from '../../env';
-import { AuthRepository } from '../../repositories';
-import { createAuthDB } from '../../utils/db';
 import { QuotaService } from '../../services/quota';
-import { requireAuth, requireTenantMember, requireInternalAuth } from './middleware';
+import { requireTenantMember, requireInternalAuth } from '../../middleware/auth-domain/subscription';
 import { RecordUsageSchema } from './schemas';
 
 const usageRouter = new Hono<AppEnv>();
 
-usageRouter.get('/:tenantId', requireAuth, requireTenantMember, async (c) => {
-    const env = getEnv(c.env);
+usageRouter.get('/:tenantId', requireTenantMember, async (c) => {
     const tenantId = c.req.param('tenantId');
     const period = c.req.query('period');
 
-    if (!tenantId) {
-        return c.json({ success: false, error: 'Tenant ID is required' }, 400);
-    }
-
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const quotaService = new QuotaService(repository);
 
     const result = await quotaService.getUsage(tenantId, period);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 500);
+        throw new HTTPException(500, { message: result.error || 'Failed to load usage' });
     }
 
     return c.json({ success: true, data: result.data });
 });
 
-usageRouter.get('/:tenantId/events', requireAuth, requireTenantMember, async (c) => {
-    const env = getEnv(c.env);
+usageRouter.get('/:tenantId/events', requireTenantMember, async (c) => {
     const tenantId = c.req.param('tenantId');
     const period = c.req.query('period');
     const service = c.req.query('service');
     const limit = parseInt(c.req.query('limit') || '100', 10);
     const offset = parseInt(c.req.query('offset') || '0', 10);
 
-    if (!tenantId) {
-        return c.json({ success: false, error: 'Tenant ID is required' }, 400);
-    }
-
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const quotaService = new QuotaService(repository);
 
     const result = await quotaService.getUsageEvents(tenantId, {
@@ -56,7 +42,7 @@ usageRouter.get('/:tenantId/events', requireAuth, requireTenantMember, async (c)
     });
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 500);
+        throw new HTTPException(500, { message: result.error || 'Failed to load usage events' });
     }
 
     return c.json({ success: true, data: result.data });
@@ -65,21 +51,18 @@ usageRouter.get('/:tenantId/events', requireAuth, requireTenantMember, async (c)
 usageRouter.post(
     '/record',
     requireInternalAuth,
-    zValidator('json', RecordUsageSchema, (result, c) => {
+    zValidator('json', RecordUsageSchema, (result, _c) => {
         if (!result.success) {
-            return c.json({
-                success: false,
-                error: 'Validation failed',
-                details: result.error.flatten(),
-            }, 400);
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
         }
     }),
     async (c) => {
-        const env = getEnv(c.env);
-        const body = c.req.valid('json');
+            const body = c.req.valid('json');
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const quotaService = new QuotaService(repository);
 
         const result = await quotaService.checkAndRecordUsage({
@@ -93,38 +76,31 @@ usageRouter.post(
         });
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Usage record failed' });
         }
 
         if (!result.data?.allowed) {
-            return c.json({
-                success: false,
-                error: 'Quota exceeded',
-                quota: result.data,
-            }, 429);
+            throw new HTTPException(429, {
+                message: 'Quota exceeded',
+                cause: result.data,
+            });
         }
 
         return c.json({ success: true, data: result.data });
     }
 );
 
-usageRouter.get('/:tenantId/quota', requireAuth, requireTenantMember, async (c) => {
-    const env = getEnv(c.env);
+usageRouter.get('/:tenantId/quota', requireTenantMember, async (c) => {
     const tenantId = c.req.param('tenantId');
     const apiKeyId = c.req.query('apiKeyId');
 
-    if (!tenantId) {
-        return c.json({ success: false, error: 'Tenant ID is required' }, 400);
-    }
-
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const quotaService = new QuotaService(repository);
 
     const result = await quotaService.checkQuota(tenantId, 0, apiKeyId || undefined);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 500);
+        throw new HTTPException(500, { message: result.error || 'Failed to load quota' });
     }
 
     return c.json({ success: true, data: result.data });

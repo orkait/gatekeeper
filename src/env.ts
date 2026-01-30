@@ -1,3 +1,5 @@
+import { logger } from "./utils/logger";
+
 export interface Bindings {
     DB: D1Database;
     AUTH_CACHE: KVNamespace;
@@ -16,11 +18,24 @@ export interface Bindings {
     RSA_PRIVATE_KEY?: string;
     RSA_PUBLIC_KEY?: string;
     RSA_KEY_ID?: string;
+    // Email configuration (Resend)
+    RESEND_API_KEY?: string;
+    FROM_EMAIL?: string;
+    APP_URL?: string;
 }
 
 export interface AppEnv {
     Bindings: Bindings;
-    Variables: Record<string, unknown>;
+    Variables: {
+        authDB: import("./utils/db").AuthDB;
+        authRepository: import("./repositories").AuthRepository;
+        authService: import("./services/auth").AuthService;
+        emailService?: import("./services/email").EmailService;
+        internalSecret: string;
+        requestId: string;
+        auth?: import("./middleware/auth-domain/core").AuthContext;
+        [key: string]: unknown;
+    };
 }
 
 export function getEnv(bindings: Bindings) {
@@ -43,6 +58,9 @@ export function getEnv(bindings: Bindings) {
         rsaPrivateKey: bindings.RSA_PRIVATE_KEY,
         rsaPublicKey: bindings.RSA_PUBLIC_KEY,
         rsaKeyId: bindings.RSA_KEY_ID,
+        resendApiKey: bindings.RESEND_API_KEY,
+        fromEmail: bindings.FROM_EMAIL || "noreply@orkait.com",
+        appUrl: bindings.APP_URL || "https://orkait.com",
         isProduction: environment === "production",
         isDevelopment: environment === "development",
         isTest: environment === "test",
@@ -55,6 +73,7 @@ export function validateEnv(bindings: Partial<Bindings>): bindings is Bindings {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    // Critical requirements
     if (!bindings.DB && bindings.ENVIRONMENT !== "test") {
         errors.push("Missing required binding: DB");
     }
@@ -65,17 +84,55 @@ export function validateEnv(bindings: Partial<Bindings>): bindings is Bindings {
         errors.push("Missing required secret: INTERNAL_SECRET");
     }
 
+    // Validate JWT_SECRET strength
+    if (bindings.JWT_SECRET && bindings.JWT_SECRET.length < 32) {
+        errors.push("JWT_SECRET must be at least 32 characters long");
+    }
+
+    // Validate INTERNAL_SECRET strength
+    if (bindings.INTERNAL_SECRET && bindings.INTERNAL_SECRET.length < 32) {
+        errors.push("INTERNAL_SECRET must be at least 32 characters long");
+    }
+
     // AUTH_CACHE is optional but recommended for performance
     if (!bindings.AUTH_CACHE && bindings.ENVIRONMENT === "production") {
         warnings.push("Missing optional binding: AUTH_CACHE (recommended for production performance)");
     }
 
+    // Validate RSA keys configuration (all or nothing)
+    const hasRsaPrivate = !!bindings.RSA_PRIVATE_KEY;
+    const hasRsaPublic = !!bindings.RSA_PUBLIC_KEY;
+    if (hasRsaPrivate !== hasRsaPublic) {
+        errors.push("RSA_PRIVATE_KEY and RSA_PUBLIC_KEY must both be set or both be unset");
+    }
+
+    // Validate email configuration (all or nothing)
+    const hasResendKey = !!bindings.RESEND_API_KEY;
+    const hasFromEmail = !!bindings.FROM_EMAIL;
+    const hasAppUrl = !!bindings.APP_URL;
+    if (hasResendKey && (!hasFromEmail || !hasAppUrl)) {
+        warnings.push("RESEND_API_KEY is set but FROM_EMAIL or APP_URL is missing - email features may not work");
+    }
+
+    // Validate Google OAuth configuration
+    if (bindings.GOOGLE_CLIENT_ID && bindings.GOOGLE_CLIENT_ID.length < 20) {
+        warnings.push("GOOGLE_CLIENT_ID appears invalid - should be a long string from Google Console");
+    }
+
+    // Validate numeric configurations
+    if (bindings.JWT_EXPIRES_IN && isNaN(parseInt(bindings.JWT_EXPIRES_IN, 10))) {
+        errors.push("JWT_EXPIRES_IN must be a valid number (seconds)");
+    }
+    if (bindings.REFRESH_TOKEN_EXPIRES_IN && isNaN(parseInt(bindings.REFRESH_TOKEN_EXPIRES_IN, 10))) {
+        errors.push("REFRESH_TOKEN_EXPIRES_IN must be a valid number (seconds)");
+    }
+
     if (warnings.length > 0) {
-        console.warn("Environment warnings:", warnings.join(", "));
+        logger.warn("Environment warnings", { warnings });
     }
 
     if (errors.length > 0) {
-        console.error("Environment validation failed:", errors.join(", "));
+        logger.error("Environment validation failed", undefined, { errors });
         return false;
     }
 

@@ -8,3 +8,4 @@ export {
     type AuthCache,
     type CachedResult,
 } from './cache';
+export { extractBearerToken } from './auth';

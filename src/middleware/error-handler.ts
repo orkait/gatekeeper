@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
+import { logger } from "../utils/logger";
 
 export interface ErrorResponse {
     success: false;
@@ -34,7 +35,7 @@ export function errorHandler(err: Error, c: Context): Response {
         );
     }
 
-    console.error("Unhandled error:", err);
+    logger.error("Unhandled error", err, { path });
     return c.json<ErrorResponse>(
         { success: false, error: "Internal server error", timestamp, path },
         500

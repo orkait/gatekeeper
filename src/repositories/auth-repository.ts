@@ -10,13 +10,14 @@
  */
 
 import { createAuthDB, type AuthDB, type QueryResult, type D1Meta } from '../utils/db';
-import type { User, RefreshToken } from '../types';
+import type { User, RefreshToken, EmailVerificationToken } from '../types';
 import type { Tenant, TenantUser, TenantRole, Session, BatchStatement } from './types';
 import { UserRepository } from './users';
 import { TenantRepository } from './tenants';
 import { TenantUserRepository } from './tenant-users';
 import { SessionRepository } from './sessions';
 import { RefreshTokenRepository } from './tokens';
+import { EmailVerificationTokenRepository } from './email-verification-tokens';
 
 export class AuthRepository {
     private db: AuthDB;
@@ -25,6 +26,7 @@ export class AuthRepository {
     private tenantUsers: TenantUserRepository;
     private sessions: SessionRepository;
     private tokens: RefreshTokenRepository;
+    private emailVerificationTokens: EmailVerificationTokenRepository;
 
     constructor(db: D1Database | AuthDB) {
         this.db = 'raw' in db ? db : createAuthDB(db);
@@ -33,6 +35,7 @@ export class AuthRepository {
         this.tenantUsers = new TenantUserRepository(this.db);
         this.sessions = new SessionRepository(this.db);
         this.tokens = new RefreshTokenRepository(this.db);
+        this.emailVerificationTokens = new EmailVerificationTokenRepository(this.db);
     }
 
     // ========================================================================
@@ -177,6 +180,34 @@ export class AuthRepository {
 
     revokeAllUserRefreshTokens(userId: string): Promise<D1Meta> {
         return this.tokens.revokeAllForUser(userId);
+    }
+
+    // ========================================================================
+    // Email Verification Token Operations
+    // ========================================================================
+
+    getEmailVerificationTokenByHash(tokenHash: string): Promise<EmailVerificationToken | null> {
+        return this.emailVerificationTokens.getByTokenHash(tokenHash);
+    }
+
+    getEmailVerificationTokenByUserId(userId: string): Promise<EmailVerificationToken | null> {
+        return this.emailVerificationTokens.getByUserId(userId);
+    }
+
+    createEmailVerificationToken(token: EmailVerificationToken): Promise<D1Meta> {
+        return this.emailVerificationTokens.create(token);
+    }
+
+    markEmailAsVerified(tokenHash: string): Promise<D1Meta> {
+        return this.emailVerificationTokens.markAsVerified(tokenHash);
+    }
+
+    deleteExpiredEmailVerificationTokens(): Promise<D1Meta> {
+        return this.emailVerificationTokens.deleteExpired();
+    }
+
+    deleteEmailVerificationTokensForUser(userId: string): Promise<D1Meta> {
+        return this.emailVerificationTokens.deleteForUser(userId);
     }
 
     // ========================================================================

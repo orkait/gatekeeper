@@ -1,5 +1,6 @@
 import type { Bindings } from '../env';
 import { createAuthDB } from '../utils/db';
+import { logger } from '../utils/logger';
 
 /**
  * Tables to backup.
@@ -61,7 +62,7 @@ export async function performBackup(env: Bindings): Promise<BackupResult> {
     let totalRows = 0;
 
     if (!env.BACKUP_BUCKET) {
-        console.error('Backup bucket not configured');
+        logger.error('Backup bucket not configured');
         return {
             timestamp,
             tables: [],
@@ -80,7 +81,7 @@ export async function performBackup(env: Bindings): Promise<BackupResult> {
                 totalRows += result.rowCount;
             }
         } catch (error) {
-            console.error(`Failed to backup table ${table}:`, error);
+            logger.error(`Failed to backup table ${table}`, error);
             results.push({
                 table,
                 rowCount: 0,
@@ -93,7 +94,7 @@ export async function performBackup(env: Bindings): Promise<BackupResult> {
 
     const duration = Date.now() - startTime;
 
-    console.log(`Backup completed in ${duration}ms. Total rows: ${totalRows}`);
+    logger.info(`Backup completed`, { duration, totalRows });
 
     return {
         timestamp,
@@ -116,7 +117,7 @@ async function backupTable(
     // The table parameter is interpolated into SQL, so we must ensure it's a known safe value
     const allowedTables: readonly string[] = BACKUP_TABLES;
     if (!allowedTables.includes(table)) {
-        console.error(`Invalid table name attempted: ${table}`);
+        logger.error('Invalid table name attempted', undefined, { table });
         return {
             table,
             rowCount: 0,
@@ -152,7 +153,7 @@ async function backupTable(
         },
     });
 
-    console.log(`Backed up ${table}: ${rows.length} rows -> ${path}`);
+    logger.info(`Backed up ${table}`, { rowCount: rows.length, path });
 
     return {
         table,
@@ -193,6 +194,20 @@ export async function restoreFromBackup(
     db: ReturnType<typeof createAuthDB>,
     backupPath: string
 ): Promise<{ table: string; rowCount: number }> {
+    const allowedTables = new Set([
+        'users',
+        'tenants',
+        'tenant_users',
+        'sessions',
+        'refresh_tokens',
+        'subscriptions',
+        'api_keys',
+        'usage',
+        'feature_flags',
+        'overrides',
+        'webhook_configs',
+        'webhook_deliveries',
+    ]);
     const object = await bucket.get(backupPath);
     if (!object) {
         throw new Error(`Backup not found: ${backupPath}`);
@@ -208,9 +223,13 @@ export async function restoreFromBackup(
         throw new Error('Invalid backup format');
     }
 
+    if (!allowedTables.has(backup.table)) {
+        throw new Error(`Restore not allowed for table: ${backup.table}`);
+    }
+
     // This is a simplified restore - in production you'd want transactions
     // and proper handling of foreign keys
-    console.warn(`Restoring ${backup.table} from ${backupPath}`);
+    logger.warn(`Restoring ${backup.table} from ${backupPath}`);
 
     // Delete existing data
     await db.run(`DELETE FROM ${backup.table}`, []);
@@ -244,7 +263,7 @@ export async function handleScheduledBackup(
     env: Bindings,
     _ctx: ExecutionContext
 ): Promise<void> {
-    console.log('Starting scheduled backup...');
+    logger.info('Starting scheduled backup');
 
     try {
         const result = await performBackup(env);
@@ -252,15 +271,20 @@ export async function handleScheduledBackup(
         const successCount = result.tables.filter(t => t.success).length;
         const failCount = result.tables.filter(t => !t.success).length;
 
-        console.log(`Backup completed: ${successCount} tables succeeded, ${failCount} failed`);
-        console.log(`Total rows backed up: ${result.totalRows}`);
-        console.log(`Duration: ${result.duration}ms`);
+        logger.info('Backup completed', {
+            successCount,
+            failCount,
+            totalRows: result.totalRows,
+            duration: result.duration,
+        });
 
         if (failCount > 0) {
             const failures = result.tables.filter(t => !t.success);
-            console.error('Failed tables:', failures.map(f => `${f.table}: ${f.error}`).join(', '));
+            logger.error('Failed tables', undefined, {
+                failures: failures.map(f => ({ table: f.table, error: f.error })),
+            });
         }
     } catch (error) {
-        console.error('Scheduled backup failed:', error);
+        logger.error('Scheduled backup failed', error);
     }
 }

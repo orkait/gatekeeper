@@ -10,5 +10,5 @@ adminRoutes.route('/overrides', overridesRouter);
 
 export default adminRoutes;
 
-export { requireAdmin, type AdminAuthInfo } from './middleware';
+export { requireAdmin, type AdminAuthInfo } from '../../middleware/auth-domain/admin';
 export * from './schemas';

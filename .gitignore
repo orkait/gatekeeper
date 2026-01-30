@@ -41,3 +41,15 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# Internal documentation
+.docs/
+docs
+.dev.vars
+.env
+/postman/*
+.kiro
+.docs
+.crush
+.claude
+.wrangler

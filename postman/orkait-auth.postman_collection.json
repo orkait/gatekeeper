@@ -5,6 +5,26 @@
 		"description": "Complete API collection for Orkait Auth service - a serverless control plane for authentication, sessions, tenants, and authorization.\n\n## Getting Started\n\n1. Start the dev server: `npm run dev`\n2. Import this collection and the environment file\n3. Run the \"Complete E2E Flow\" folder in order to test the full flow\n\n## Authentication\n\nMost endpoints require a Bearer token. After login/signup, the access token is automatically saved to the environment.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Initialize default values if not set",
+					"if (!pm.environment.get('userPassword')) {",
+					"    pm.environment.set('userPassword', 'TestPassword123!');",
+					"}",
+					"if (!pm.environment.get('userName')) {",
+					"    pm.environment.set('userName', 'Test User');",
+					"}",
+					"if (!pm.environment.get('tenantName')) {",
+					"    pm.environment.set('tenantName', 'Test Tenant');",
+					"}"
+				]
+			}
+		}
+	],
 	"item": [
 		{
 			"name": "Health & Info",
@@ -16,8 +36,12 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/",
-							"host": ["{{baseUrl}}"],
-							"path": [""]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								""
+							]
 						}
 					},
 					"response": []
@@ -48,8 +72,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/health",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "health"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"health"
+							]
 						}
 					},
 					"response": []
@@ -82,8 +111,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/.well-known/jwks.json",
-							"host": ["{{baseUrl}}"],
-							"path": [".well-known", "jwks.json"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								".well-known",
+								"jwks.json"
+							]
 						}
 					},
 					"response": []
@@ -142,8 +176,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/signup",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "signup"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"signup"
+							]
 						}
 					},
 					"response": []
@@ -193,12 +233,18 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"{{userEmail}}\",\n    \"password\": \"{{userPassword}}\"\n}"
+							"raw": "{\n    \"email\": \"{{e2eEmail}}\",\n    \"password\": \"{{e2ePassword}}\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
 						}
 					},
 					"response": []
@@ -246,8 +292,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/refresh",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "refresh"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
 						}
 					},
 					"response": []
@@ -291,8 +343,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/logout",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "logout"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
 						}
 					},
 					"response": []
@@ -328,8 +386,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/logout-all",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "logout-all"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout-all"
+							]
 						}
 					},
 					"response": []
@@ -364,8 +428,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/google",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "google"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"google"
+							]
 						}
 					},
 					"response": []
@@ -417,12 +487,17 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"{{tenantName}}\",\n    \"globalQuotaLimit\": 10000\n}"
+							"raw": "{\n    \"name\": \"{{e2eTenantName}}\",\n    \"globalQuotaLimit\": 10000\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants"
+							]
 						}
 					},
 					"response": []
@@ -459,8 +534,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}"
+							]
 						}
 					},
 					"response": []
@@ -496,8 +577,15 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/me/list",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "me", "list"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"me",
+								"list"
+							]
 						}
 					},
 					"response": []
@@ -541,8 +629,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}"
+							]
 						}
 					},
 					"response": []
@@ -578,8 +672,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}"
+							]
 						}
 					},
 					"response": []
@@ -620,8 +720,15 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}", "users"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}",
+								"users"
+							]
 						}
 					},
 					"response": []
@@ -667,8 +774,15 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}", "users"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}",
+								"users"
+							]
 						}
 					},
 					"response": []
@@ -713,8 +827,16 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users/{{secondUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}", "users", "{{secondUserId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}",
+								"users",
+								"{{secondUserId}}"
+							]
 						}
 					},
 					"response": []
@@ -751,8 +873,16 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users/{{secondUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}", "users", "{{secondUserId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}",
+								"users",
+								"{{secondUserId}}"
+							]
 						}
 					},
 					"response": []
@@ -813,8 +943,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/keys",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "keys"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"keys"
+							]
 						}
 					},
 					"response": []
@@ -854,8 +989,13 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/keys",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "keys"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"keys"
+							]
 						}
 					},
 					"response": []
@@ -895,8 +1035,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/keys/{{apiKeyId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "keys", "{{apiKeyId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"keys",
+								"{{apiKeyId}}"
+							]
 						}
 					},
 					"response": []
@@ -943,8 +1089,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/keys/{{apiKeyId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "keys", "{{apiKeyId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"keys",
+								"{{apiKeyId}}"
+							]
 						}
 					},
 					"response": []
@@ -984,8 +1136,257 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/keys/{{apiKeyId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "keys", "{{apiKeyId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"keys",
+								"{{apiKeyId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subscriptions & Usage",
+			"item": [
+				{
+					"name": "Get Subscription",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has subscription data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"tierId\");",
+									"    pm.expect(jsonData.data).to.have.property(\"status\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/subscriptions/{{tenantId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"subscriptions",
+								"{{tenantId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upgrade Subscription",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has updated subscription\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.tierId).to.eql(\"tier_pro\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tierId\": \"tier_pro\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/subscriptions/{{tenantId}}/upgrade",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"subscriptions",
+								"{{tenantId}}",
+								"upgrade"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Downgrade Subscription",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has updated subscription\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data.tierId).to.eql(\"tier_free\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tierId\": \"tier_free\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/subscriptions/{{tenantId}}/downgrade",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"subscriptions",
+								"{{tenantId}}",
+								"downgrade"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Usage Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has usage data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"apiCalls\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/subscriptions/usage/{{tenantId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"subscriptions",
+								"usage",
+								"{{tenantId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check Quota Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has quota status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.data).to.have.property(\"isAtLimit\");",
+									"    pm.expect(jsonData.data).to.have.property(\"percentUsed\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/subscriptions/usage/{{tenantId}}/quota",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"subscriptions",
+								"usage",
+								"{{tenantId}}",
+								"quota"
+							]
 						}
 					},
 					"response": []
@@ -1033,8 +1434,13 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/authorize",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "authorize"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"authorize"
+							]
 						}
 					},
 					"response": []
@@ -1057,7 +1463,7 @@
 									"    pm.expect(jsonData.status).to.eql(\"ok\");",
 									"});",
 									"",
-									"console.log(\"✅ Health check passed\");"
+									"console.log(\"âœ… Health check passed\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1068,8 +1474,13 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/health",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "health"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"health"
+							]
 						}
 					},
 					"response": []
@@ -1081,10 +1492,16 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"// Generate unique email for this test run",
+									"// Generate unique email and tenant name for this test run",
 									"var timestamp = Date.now();",
-									"pm.environment.set(\"userEmail\", \"e2e_\" + timestamp + \"@test.com\");",
-									"pm.environment.set(\"tenantName\", \"E2E Test Tenant \" + timestamp);"
+									"var randomSuffix = Math.random().toString(36).substring(2, 8);",
+									"var uniqueEmail = 'e2e_' + timestamp + '_' + randomSuffix + '@test.com';",
+									"",
+									"pm.environment.set('e2eEmail', uniqueEmail);",
+									"pm.environment.set('e2eTenantName', 'E2E Test Tenant ' + timestamp);",
+									"pm.environment.set('e2ePassword', 'TestPassword123!');",
+									"",
+									"console.log('Generated unique email: ' + uniqueEmail);"
 								],
 								"type": "text/javascript"
 							}
@@ -1097,17 +1514,18 @@
 									"    pm.response.to.have.status(201);",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data.accessToken).to.be.a(\"string\");",
-									"    pm.expect(jsonData.data.refreshToken).to.be.a(\"string\");",
-									"    pm.expect(jsonData.data.user.email).to.eql(pm.environment.get(\"userEmail\"));",
+									"    pm.expect(jsonData.data.accessToken).to.be.a('string');",
+									"    pm.expect(jsonData.data.refreshToken).to.be.a('string');",
+									"    pm.expect(jsonData.data.user.email).to.eql(pm.environment.get('e2eEmail'));",
 									"});",
 									"",
 									"var jsonData = pm.response.json();",
-									"pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
-									"pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
-									"pm.environment.set(\"userId\", jsonData.data.user.id);",
-									"",
-									"console.log(\"✅ User signed up: \" + jsonData.data.user.email);"
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set('accessToken', jsonData.data.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.data.refreshToken);",
+									"    pm.environment.set('userId', jsonData.data.user.id);",
+									"    console.log('✅ User signed up: ' + jsonData.data.user.email);",
+									"}"
 								],
 								"type": "text/javascript"
 							}
@@ -1123,12 +1541,18 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"{{userEmail}}\",\n    \"password\": \"{{userPassword}}\",\n    \"name\": \"E2E Test User\"\n}"
+							"raw": "{\n    \"email\": \"{{e2eEmail}}\",\n    \"password\": \"{{e2ePassword}}\",\n    \"name\": \"E2E Test User\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/signup",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "signup"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"signup"
+							]
 						}
 					},
 					"response": []
@@ -1152,7 +1576,7 @@
 									"pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
 									"pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
 									"",
-									"console.log(\"✅ Token refreshed successfully\");"
+									"console.log(\"âœ… Token refreshed successfully\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1172,8 +1596,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/refresh",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "refresh"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
 						}
 					},
 					"response": []
@@ -1195,7 +1625,7 @@
 									"var jsonData = pm.response.json();",
 									"pm.environment.set(\"tenantId\", jsonData.data.id);",
 									"",
-									"console.log(\"✅ Tenant created: \" + jsonData.data.name);"
+									"console.log(\"âœ… Tenant created: \" + jsonData.data.name);"
 								],
 								"type": "text/javascript"
 							}
@@ -1215,12 +1645,17 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"{{tenantName}}\",\n    \"globalQuotaLimit\": 10000\n}"
+							"raw": "{\n    \"name\": \"{{e2eTenantName}}\",\n    \"globalQuotaLimit\": 10000\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants"
+							]
 						}
 					},
 					"response": []
@@ -1240,7 +1675,7 @@
 									"    pm.expect(jsonData.data.length).to.be.at.least(1);",
 									"});",
 									"",
-									"console.log(\"✅ Found \" + pm.response.json().data.length + \" tenant(s)\");"
+									"console.log(\"âœ… Found \" + pm.response.json().data.length + \" tenant(s)\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1256,8 +1691,15 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/me/list",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "me", "list"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"me",
+								"list"
+							]
 						}
 					},
 					"response": []
@@ -1276,7 +1718,7 @@
 									"    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"tenantId\"));",
 									"});",
 									"",
-									"console.log(\"✅ Tenant details retrieved\");"
+									"console.log(\"âœ… Tenant details retrieved\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1292,8 +1734,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}"
+							]
 						}
 					},
 					"response": []
@@ -1314,7 +1762,7 @@
 									"    pm.expect(jsonData.data[0].role).to.eql(\"owner\");",
 									"});",
 									"",
-									"console.log(\"✅ Tenant has \" + pm.response.json().data.length + \" user(s)\");"
+									"console.log(\"âœ… Tenant has \" + pm.response.json().data.length + \" user(s)\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1330,8 +1778,15 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}", "users"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}",
+								"users"
+							]
 						}
 					},
 					"response": []
@@ -1350,7 +1805,7 @@
 									"    pm.expect(jsonData.data.globalQuotaLimit).to.eql(20000);",
 									"});",
 									"",
-									"console.log(\"✅ Tenant quota updated to 20000\");"
+									"console.log(\"âœ… Tenant quota updated to 20000\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1374,8 +1829,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}"
+							]
 						}
 					},
 					"response": []
@@ -1393,7 +1854,7 @@
 									"    pm.expect(jsonData.success).to.eql(true);",
 									"});",
 									"",
-									"console.log(\"✅ User logged out\");"
+									"console.log(\"âœ… User logged out\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1417,8 +1878,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/logout",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "logout"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
 						}
 					},
 					"response": []
@@ -1434,14 +1901,15 @@
 									"    pm.response.to.have.status(200);",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data.user.email).to.eql(pm.environment.get(\"userEmail\"));",
+									"    pm.expect(jsonData.data.user.email).to.eql(pm.environment.get('e2eEmail'));",
 									"});",
 									"",
 									"var jsonData = pm.response.json();",
-									"pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
-									"pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
-									"",
-									"console.log(\"✅ User logged back in\");"
+									"if (jsonData.success && jsonData.data) {",
+									"    pm.environment.set('accessToken', jsonData.data.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.data.refreshToken);",
+									"    console.log('✅ User logged back in');",
+									"}"
 								],
 								"type": "text/javascript"
 							}
@@ -1457,12 +1925,18 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"{{userEmail}}\",\n    \"password\": \"{{userPassword}}\"\n}"
+							"raw": "{\n    \"email\": \"{{e2eEmail}}\",\n    \"password\": \"{{e2ePassword}}\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
 						}
 					},
 					"response": []
@@ -1480,9 +1954,9 @@
 									"    pm.expect(jsonData.success).to.eql(true);",
 									"});",
 									"",
-									"console.log(\"✅ Tenant deleted (cleanup)\");",
+									"console.log(\"âœ… Tenant deleted (cleanup)\");",
 									"console.log(\"\");",
-									"console.log(\"🎉 E2E FLOW COMPLETED SUCCESSFULLY!\");"
+									"console.log(\"ðŸŽ‰ E2E FLOW COMPLETED SUCCESSFULLY!\");"
 								],
 								"type": "text/javascript"
 							}
@@ -1498,8 +1972,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/{{tenantId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "{{tenantId}}"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"{{tenantId}}"
+							]
 						}
 					},
 					"response": []
@@ -1544,8 +2024,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
 						}
 					},
 					"response": []
@@ -1570,8 +2056,15 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/me/list",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "me", "list"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"me",
+								"list"
+							]
 						}
 					},
 					"response": []
@@ -1601,8 +2094,15 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/me/list",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "me", "list"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"me",
+								"list"
+							]
 						}
 					},
 					"response": []
@@ -1637,8 +2137,14 @@
 						],
 						"url": {
 							"raw": "{{baseUrl}}/api/tenants/nonexistent-tenant-id",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "tenants", "nonexistent-tenant-id"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenants",
+								"nonexistent-tenant-id"
+							]
 						}
 					},
 					"response": []
@@ -1672,8 +2178,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/signup",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "signup"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"signup"
+							]
 						}
 					},
 					"response": []
@@ -1707,8 +2219,14 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/signup",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "signup"]
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"signup"
+							]
 						}
 					},
 					"response": []

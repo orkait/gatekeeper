@@ -13,6 +13,8 @@ export interface User {
     createdAt: number;
     updatedAt: number;
     lastLoginAt: number | null;
+    lockedUntil: number | null;
+    failedLoginCount: number;
 }
 
 export interface UserPublic {
@@ -201,6 +203,16 @@ export interface RefreshToken {
     revokedAt: number | null;
 }
 
+export interface EmailVerificationToken {
+    id: string;
+    userId: string;
+    token: string;
+    tokenHash: string;
+    expiresAt: number;
+    createdAt: number;
+    verifiedAt: number | null;
+}
+
 // Auth Types
 export interface AuthTokens {
     accessToken: string;
@@ -215,6 +227,7 @@ export interface AuthResult extends AuthTokens {
 export interface JWTPayload {
     sub: string;
     email: string;
+    tenant_id?: string;
     iat: number;
     exp: number;
 }

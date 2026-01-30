@@ -10,5 +10,5 @@ subscriptionRoutes.route('/usage', usageRouter);
 
 export default subscriptionRoutes;
 
-export { requireAuth, requireTenantMember, requireInternalAuth, type SubscriptionAuthInfo } from './middleware';
+export { requireTenantMember, requireTenantAdmin, requireInternalAuth } from '../../middleware/auth-domain/subscription';
 export * from './schemas';

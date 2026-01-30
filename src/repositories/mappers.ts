@@ -1,4 +1,4 @@
-export { mapUser, mapRefreshToken } from '../db/mappers';
+export { mapUser, mapRefreshToken, mapEmailVerificationToken } from '../db/mappers';
 
 import type {
     TenantRow, TenantUserRow, SessionRow,

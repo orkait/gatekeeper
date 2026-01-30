@@ -7,6 +7,7 @@ import { SubscriptionService, type SubscriptionTier } from '../subscription';
 import { FeatureFlagService } from '../featureflag';
 import { OverrideService, type ParsedOverrides } from '../override';
 import { nowMs } from '../shared';
+import { logger } from '../../utils/logger';
 import { 
     type AuthorizeContext, 
     type AuthorizeResult, 
@@ -172,7 +173,7 @@ export class AuthorizationService {
             return this.allow(metadata);
 
         } catch (error) {
-            console.error('Authorization error:', error);
+            logger.error('Authorization error', error);
             return this.deny(DenyReason.INTERNAL_ERROR, metadata);
         }
     }

@@ -1,40 +1,36 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '../../env';
-import { getEnv } from '../../env';
-import { AuthRepository } from '../../repositories';
-import { createAuthDB } from '../../utils/db';
 import { TenantService } from '../../services/tenant';
-import { requireAuth, requireTenantAdmin, type TenantAuthInfo } from './middleware';
+import { requireTenantAdmin, requireTenantMember, requireTenantOwner } from '../../middleware/auth-domain/tenant';
+import { authMiddleware, getAuth } from '../../middleware/auth-domain/core';
 import { CreateTenantSchema, UpdateTenantSchema } from './schemas';
 
 const crudRouter = new Hono<AppEnv>();
 
 crudRouter.post(
     '/',
-    requireAuth,
-    zValidator('json', CreateTenantSchema, (result, c) => {
+    authMiddleware,
+    zValidator('json', CreateTenantSchema, (result, _c) => {
         if (!result.success) {
-            return c.json({
-                success: false,
-                error: 'Validation failed',
-                details: result.error.flatten(),
-            }, 400);
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
         }
     }),
     async (c) => {
-        const env = getEnv(c.env);
-        const auth = c.get('auth') as TenantAuthInfo;
+            const auth = getAuth(c);
         const body = c.req.valid('json');
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const tenantService = new TenantService(repository);
 
         const result = await tenantService.createTenant(body, auth.userId);
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Tenant create failed' });
         }
 
         return c.json({ success: true, data: result.data }, 201);
@@ -42,41 +38,31 @@ crudRouter.post(
 );
 
 // ROUTE ORDER FIX: /me/list must come BEFORE /:id to avoid 'me' being captured as a tenant ID
-crudRouter.get('/me/list', requireAuth, async (c) => {
-    const env = getEnv(c.env);
-    const auth = c.get('auth') as TenantAuthInfo;
+crudRouter.get('/me/list', authMiddleware, async (c) => {
+    const auth = getAuth(c);
 
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const tenantService = new TenantService(repository);
 
     const result = await tenantService.getUserTenants(auth.userId);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 500);
+        throw new HTTPException(500, { message: result.error || 'Failed to load tenants' });
     }
 
     return c.json({ success: true, data: result.data });
 });
 
-crudRouter.get('/:id', requireAuth, async (c) => {
-    const env = getEnv(c.env);
-    const auth = c.get('auth') as TenantAuthInfo;
+crudRouter.get('/:id', requireTenantMember, async (c) => {
     const tenantId = c.req.param('id');
 
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const tenantService = new TenantService(repository);
-
-    const tenantUser = await repository.getTenantUser(tenantId, auth.userId);
-    if (!tenantUser) {
-        return c.json({ success: false, error: 'Tenant not found or access denied' }, 404);
-    }
 
     const result = await tenantService.getTenant(tenantId);
 
     if (!result.success || !result.data) {
-        return c.json({ success: false, error: result.error || 'Tenant not found' }, 404);
+        throw new HTTPException(404, { message: result.error || 'Tenant not found' });
     }
 
     return c.json({ success: true, data: result.data });
@@ -84,54 +70,42 @@ crudRouter.get('/:id', requireAuth, async (c) => {
 
 crudRouter.patch(
     '/:id',
-    requireAuth,
     requireTenantAdmin,
-    zValidator('json', UpdateTenantSchema, (result, c) => {
+    zValidator('json', UpdateTenantSchema, (result, _c) => {
         if (!result.success) {
-            return c.json({
-                success: false,
-                error: 'Validation failed',
-                details: result.error.flatten(),
-            }, 400);
+            throw new HTTPException(400, {
+                message: 'Validation failed',
+                cause: result.error.flatten(),
+            });
         }
     }),
     async (c) => {
-        const env = getEnv(c.env);
-        const tenantId = c.req.param('id');
+            const tenantId = c.req.param('id');
         const body = c.req.valid('json');
 
-        const db = createAuthDB(env.db);
-        const repository = new AuthRepository(db);
+        const repository = c.get('authRepository');
         const tenantService = new TenantService(repository);
 
         const result = await tenantService.updateTenant(tenantId, body);
 
         if (!result.success) {
-            return c.json({ success: false, error: result.error }, 400);
+            throw new HTTPException(400, { message: result.error || 'Tenant update failed' });
         }
 
         return c.json({ success: true, data: result.data });
     }
 );
 
-crudRouter.delete('/:id', requireAuth, async (c) => {
-    const env = getEnv(c.env);
-    const auth = c.get('auth') as TenantAuthInfo;
+crudRouter.delete('/:id', requireTenantOwner, async (c) => {
     const tenantId = c.req.param('id');
 
-    const db = createAuthDB(env.db);
-    const repository = new AuthRepository(db);
+    const repository = c.get('authRepository');
     const tenantService = new TenantService(repository);
-
-    const tenantUser = await repository.getTenantUser(tenantId, auth.userId);
-    if (!tenantUser || tenantUser.role !== 'owner') {
-        return c.json({ success: false, error: 'Owner access required' }, 403);
-    }
 
     const result = await tenantService.deleteTenant(tenantId);
 
     if (!result.success) {
-        return c.json({ success: false, error: result.error }, 400);
+        throw new HTTPException(400, { message: result.error || 'Tenant delete failed' });
     }
 
     return c.json({ success: true, message: 'Tenant deleted' });

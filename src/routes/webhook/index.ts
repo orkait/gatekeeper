@@ -8,5 +8,5 @@ webhookRoutes.route('/', handlersRouter);
 
 export default webhookRoutes;
 
-export { requireAuth, type WebhookAuthInfo } from './middleware';
+export { requireAuth } from '../../middleware/auth-domain/webhook';
 export * from './schemas';
